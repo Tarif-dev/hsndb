@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, Download, BookOpen, BarChart3, ChevronDown, X, ExternalLink, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,17 +32,17 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortBy, setSortBy] = useState('relevance');
   const [filters, setFilters] = useState({
-    organisms: [] as string[],
     tissues: [] as string[],
     confidence: [] as string[],
-    modifications: [] as string[]
+    cancerSites: [] as string[],
+    totalSites: [] as string[]
   });
 
   const filterOptions = {
-    organisms: ['Homo sapiens', 'Mus musculus', 'Rattus norvegicus', 'Danio rerio'],
-    tissues: ['Heart', 'Brain', 'Liver', 'Kidney', 'Lung', 'Muscle'],
+    tissues: ['Heart', 'Brain', 'Liver', 'Kidney', 'Lung', 'Muscle', 'Blood', 'Prostate', 'Breast'],
     confidence: ['High', 'Medium', 'Low'],
-    modifications: ['S-Nitrosylation', 'Tyrosine Nitration', 'Cysteine Oxidation']
+    cancerSites: ['Yes', 'No'],
+    totalSites: ['1-5', '6-10', '11-20', '21+']
   };
 
   // Mock data - in real app this would come from API
@@ -49,42 +50,42 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
     {
       id: 'P12345',
       name: 'Hemoglobin subunit alpha',
-      organism: 'Homo sapiens',
       modifications: 3,
       tissue: 'Blood',
       confidence: 'High',
       uniprotId: 'P69905',
       molecularWeight: '15.1 kDa',
       modificationSites: 'Cys104, Cys111, Cys93',
-      pmid: '28123456'
+      pmid: '28123456',
+      cancerAssociated: 'No'
     },
     {
       id: 'Q98765',
       name: 'Cardiac troponin I',
-      organism: 'Homo sapiens',
       modifications: 2,
       tissue: 'Heart',
       confidence: 'Medium',
       uniprotId: 'P19429',
       molecularWeight: '24.0 kDa',
       modificationSites: 'Cys81, Cys145',
-      pmid: '29234567'
+      pmid: '29234567',
+      cancerAssociated: 'Yes'
     },
     {
       id: 'R54321',
-      name: 'Neuronal protein 1',
-      organism: 'Mus musculus',
+      name: 'BRCA1 DNA repair protein',
       modifications: 5,
-      tissue: 'Brain',
+      tissue: 'Breast',
       confidence: 'High',
-      uniprotId: 'Q9CQV8',
-      molecularWeight: '32.5 kDa',
+      uniprotId: 'P38398',
+      molecularWeight: '207.7 kDa',
       modificationSites: 'Cys23, Cys89, Cys156, Cys201, Cys234',
-      pmid: '30345678'
+      pmid: '30345678',
+      cancerAssociated: 'Yes'
     }
   ];
 
-  const totalResults = 1247;
+  const totalResults = 8247;
   const totalPages = Math.ceil(totalResults / itemsPerPage);
 
   const toggleFilter = (category: keyof typeof filters, value: string) => {
@@ -99,10 +100,10 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
 
   const clearAllFilters = () => {
     setFilters({
-      organisms: [],
       tissues: [],
       confidence: [],
-      modifications: []
+      cancerSites: [],
+      totalSites: []
     });
     setCurrentPage(1);
   };
@@ -120,6 +121,10 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
     }
   };
 
+  const getCancerBadgeVariant = (cancerAssociated: string) => {
+    return cancerAssociated === 'Yes' ? 'destructive' : 'secondary';
+  };
+
   useEffect(() => {
     setSearchQuery(initialQuery);
   }, [initialQuery]);
@@ -129,9 +134,9 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Proteins Database</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Browse Human S-nitrosylation Database</h1>
           <p className="text-gray-600">
-            Explore and filter through {totalResults.toLocaleString()} nitrosilated proteins
+            Explore and filter through {totalResults.toLocaleString()} human S-nitrosylated proteins
           </p>
         </div>
 
@@ -159,7 +164,8 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                 {Object.entries(filterOptions).map(([category, options]) => (
                   <div key={category}>
                     <label className="text-sm font-medium text-gray-700 mb-3 block capitalize">
-                      {category}
+                      {category === 'cancerSites' ? 'Cancer Associated' : 
+                       category === 'totalSites' ? 'Total Sites' : category}
                     </label>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {options.map((option) => (
@@ -213,8 +219,8 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                       >
                         <option value="relevance">Relevance</option>
                         <option value="name">Name</option>
-                        <option value="organism">Organism</option>
-                        <option value="modifications">Modifications</option>
+                        <option value="tissue">Tissue</option>
+                        <option value="modifications">Sites Count</option>
                       </select>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -260,10 +266,10 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                     <TableRow className="bg-gray-50">
                       <TableHead className="font-semibold text-gray-700">Protein Name</TableHead>
                       <TableHead className="font-semibold text-gray-700">UniProt ID</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Organism</TableHead>
                       <TableHead className="font-semibold text-gray-700">Tissue</TableHead>
                       <TableHead className="font-semibold text-gray-700">MW</TableHead>
                       <TableHead className="font-semibold text-gray-700">Sites</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Cancer</TableHead>
                       <TableHead className="font-semibold text-gray-700">Confidence</TableHead>
                       <TableHead className="font-semibold text-gray-700">Actions</TableHead>
                     </TableRow>
@@ -283,9 +289,6 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="text-gray-700 italic">{result.organism}</span>
-                        </TableCell>
-                        <TableCell>
                           <span className="text-gray-700">{result.tissue}</span>
                         </TableCell>
                         <TableCell>
@@ -298,6 +301,11 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                               {result.modificationSites}
                             </div>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getCancerBadgeVariant(result.cancerAssociated)}>
+                            {result.cancerAssociated}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant={getConfidenceBadgeVariant(result.confidence)}>
