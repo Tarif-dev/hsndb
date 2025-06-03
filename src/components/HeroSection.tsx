@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Search, ArrowDown, Database, BarChart3, Globe } from 'lucide-react';
+import { Search, ArrowDown, Database, BarChart3, Globe, Dna, Heart, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -25,39 +25,65 @@ const HeroSection = () => {
             </span>
           </h1>
 
-          {/* Subtitle */}
-          <p className="text-xl sm:text-2xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed">
-            Discover, analyze, and visualize nitrosilated proteins with the most comprehensive 
-            database platform designed for modern scientific research.
-          </p>
-
-          {/* Search Interface */}
-          <div className="max-w-3xl mx-auto mb-12">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-6 w-6 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search by protein name, organism, modification site, or UniProt ID..."
-                className="pl-12 pr-32 py-4 text-lg border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg"
-              />
-              <Button 
-                size="lg" 
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                Search
-              </Button>
-            </div>
+          {/* Detailed Explanation */}
+          <div className="max-w-5xl mx-auto mb-12">
+            <p className="text-xl sm:text-2xl text-gray-600 mb-8 leading-relaxed">
+              Discover, analyze, and visualize nitrosilated proteins with the most comprehensive 
+              database platform designed for modern scientific research.
+            </p>
             
-            {/* Quick Search Tags */}
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              {['Human Proteins', 'Cardiac Tissue', 'S-Nitrosylation', 'Mouse Models', 'Recent Studies'].map((tag) => (
-                <button
-                  key={tag}
-                  className="px-4 py-2 bg-white/80 text-gray-700 rounded-full text-sm font-medium hover:bg-blue-50 hover:text-blue-700 transition-colors duration-200 border border-gray-200"
-                >
-                  {tag}
-                </button>
-              ))}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-200 shadow-lg text-left">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Understanding Human Nitrosilated Proteins</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <div className="flex items-center mb-4">
+                    <Dna className="h-6 w-6 text-blue-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-800">What is Protein Nitrosylation?</h3>
+                  </div>
+                  <p className="text-gray-700 mb-4">
+                    Protein nitrosylation is a crucial post-translational modification where nitric oxide (NO) 
+                    covalently binds to cysteine residues, forming S-nitrosothiol groups. This reversible 
+                    modification regulates protein function, localization, and stability.
+                  </p>
+                </div>
+                
+                <div>
+                  <div className="flex items-center mb-4">
+                    <Heart className="h-6 w-6 text-red-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-800">Biological Significance</h3>
+                  </div>
+                  <p className="text-gray-700 mb-4">
+                    In humans, nitrosilated proteins play vital roles in cardiovascular health, 
+                    immune responses, and neurological functions. Dysregulation is linked to diseases 
+                    like heart failure, stroke, and neurodegenerative disorders.
+                  </p>
+                </div>
+                
+                <div>
+                  <div className="flex items-center mb-4">
+                    <Brain className="h-6 w-6 text-purple-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-800">Research Applications</h3>
+                  </div>
+                  <p className="text-gray-700">
+                    Understanding nitrosilation patterns helps researchers identify therapeutic targets, 
+                    develop biomarkers for disease diagnosis, and design interventions for conditions 
+                    involving nitric oxide signaling pathways.
+                  </p>
+                </div>
+                
+                <div>
+                  <div className="flex items-center mb-4">
+                    <Database className="h-6 w-6 text-green-600 mr-3" />
+                    <h3 className="text-lg font-semibold text-gray-800">Our Database</h3>
+                  </div>
+                  <p className="text-gray-700">
+                    Our comprehensive platform aggregates nitrosilation data from thousands of studies, 
+                    providing researchers with unprecedented access to modification sites, tissue 
+                    distributions, and functional annotations across species.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 

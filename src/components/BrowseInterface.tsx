@@ -1,10 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Download, BookOpen, BarChart3, ChevronDown, X } from 'lucide-react';
+import { Search, Filter, Download, BookOpen, BarChart3, ChevronDown, X, ExternalLink, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { 
   Pagination, 
   PaginationContent, 
@@ -47,7 +54,9 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
       tissue: 'Blood',
       confidence: 'High',
       uniprotId: 'P69905',
-      molecularWeight: '15.1 kDa'
+      molecularWeight: '15.1 kDa',
+      modificationSites: 'Cys104, Cys111, Cys93',
+      pmid: '28123456'
     },
     {
       id: 'Q98765',
@@ -57,7 +66,9 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
       tissue: 'Heart',
       confidence: 'Medium',
       uniprotId: 'P19429',
-      molecularWeight: '24.0 kDa'
+      molecularWeight: '24.0 kDa',
+      modificationSites: 'Cys81, Cys145',
+      pmid: '29234567'
     },
     {
       id: 'R54321',
@@ -67,7 +78,9 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
       tissue: 'Brain',
       confidence: 'High',
       uniprotId: 'Q9CQV8',
-      molecularWeight: '32.5 kDa'
+      molecularWeight: '32.5 kDa',
+      modificationSites: 'Cys23, Cys89, Cys156, Cys201, Cys234',
+      pmid: '30345678'
     }
   ];
 
@@ -96,6 +109,15 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
 
   const getActiveFiltersCount = () => {
     return Object.values(filters).reduce((sum, filterArray) => sum + filterArray.length, 0);
+  };
+
+  const getConfidenceBadgeVariant = (confidence: string) => {
+    switch (confidence) {
+      case 'High': return 'default';
+      case 'Medium': return 'secondary';
+      case 'Low': return 'outline';
+      default: return 'secondary';
+    }
   };
 
   useEffect(() => {
@@ -230,53 +252,77 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
               </p>
             </div>
 
-            {/* Results */}
-            <div className="space-y-4">
-              {sampleResults.map((result) => (
-                <Card key={result.id} className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {result.name}
-                          </h3>
-                          <Badge variant="outline">{result.uniprotId}</Badge>
-                          <Badge 
-                            variant={result.confidence === 'High' ? 'default' : 'secondary'}
-                          >
+            {/* Results Table */}
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50">
+                      <TableHead className="font-semibold text-gray-700">Protein Name</TableHead>
+                      <TableHead className="font-semibold text-gray-700">UniProt ID</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Organism</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Tissue</TableHead>
+                      <TableHead className="font-semibold text-gray-700">MW</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Sites</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Confidence</TableHead>
+                      <TableHead className="font-semibold text-gray-700">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sampleResults.map((result) => (
+                      <TableRow key={result.id} className="hover:bg-gray-50 transition-colors">
+                        <TableCell>
+                          <div>
+                            <div className="font-medium text-gray-900">{result.name}</div>
+                            <div className="text-sm text-gray-500">ID: {result.id}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono">
+                            {result.uniprotId}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-gray-700 italic">{result.organism}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-gray-700">{result.tissue}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-gray-700 font-mono text-sm">{result.molecularWeight}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-semibold text-blue-600">{result.modifications}</div>
+                            <div className="text-xs text-gray-500 max-w-32 truncate" title={result.modificationSites}>
+                              {result.modificationSites}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getConfidenceBadgeVariant(result.confidence)}>
                             {result.confidence}
                           </Badge>
-                        </div>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
-                          <span>{result.organism}</span>
-                          <span>•</span>
-                          <span>{result.tissue} tissue</span>
-                          <span>•</span>
-                          <span>{result.modifications} modification sites</span>
-                          <span>•</span>
-                          <span>{result.molecularWeight}</span>
-                        </div>
-                        <p className="text-gray-700 text-sm">
-                          Nitrosilated protein involved in cellular signaling pathways 
-                          with confirmed modification sites at cysteine residues.
-                        </p>
-                      </div>
-                      <div className="flex flex-col space-y-2 ml-6">
-                        <Button variant="outline" size="sm">
-                          <BookOpen className="h-4 w-4 mr-1" />
-                          Details
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <BarChart3 className="h-4 w-4 mr-1" />
-                          Visualize
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-1">
+                            <Button variant="ghost" size="sm" title="View Details">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" title="Visualize">
+                              <BarChart3 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" title="View Publication">
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
             {/* Pagination */}
             <div className="flex justify-center">
