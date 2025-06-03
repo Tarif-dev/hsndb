@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Search, Menu, X, User, BookOpen, Database, BarChart3 } from 'lucide-react';
+import { Search, Menu, X, User, BookOpen, FileSearch, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -9,7 +8,7 @@ const Navigation = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const navItems = [
-    { label: 'Database', href: '/database', icon: Database },
+    { label: 'Browse', href: '/browse', icon: FileSearch },
     { label: 'Analytics', href: '/analytics', icon: BarChart3 },
     { label: 'Documentation', href: '/docs', icon: BookOpen },
   ];
