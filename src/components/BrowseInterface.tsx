@@ -42,46 +42,65 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
     tissues: ['Heart', 'Brain', 'Liver', 'Kidney', 'Lung', 'Muscle', 'Blood', 'Prostate', 'Breast'],
     confidence: ['High', 'Medium', 'Low'],
     cancerSites: ['Yes', 'No'],
-    totalSites: ['1-5', '6-10', '11-20', '21+']
+    totalSites: ['1', '2', '3-5', '6-10', '11+']
   };
 
-  // Mock data - in real app this would come from API
+  // Sample data matching the screenshot format
   const sampleResults = [
     {
-      id: 'P12345',
-      name: 'Hemoglobin subunit alpha',
-      modifications: 3,
-      tissue: 'Blood',
-      confidence: 'High',
-      uniprotId: 'P69905',
-      molecularWeight: '15.1 kDa',
-      modificationSites: 'Cys104, Cys111, Cys93',
-      pmid: '28123456',
-      cancerAssociated: 'No'
+      hsnId: 'HSN1',
+      geneName: 'NUDT4B',
+      uniprotId: 'A0A024RBG1',
+      proteinName: 'Diphosphoinositol polyphosphate phosphohydrolase NUDT4B',
+      proteinLength: 181,
+      alphafoldId: 'AF-A0A024RBG1-F1',
+      totalSites: 1,
+      positionOfNitrosylation: '132',
+      cancerCausing: false
     },
     {
-      id: 'Q98765',
-      name: 'Cardiac troponin I',
-      modifications: 2,
-      tissue: 'Heart',
-      confidence: 'Medium',
-      uniprotId: 'P19429',
-      molecularWeight: '24.0 kDa',
-      modificationSites: 'Cys81, Cys145',
-      pmid: '29234567',
-      cancerAssociated: 'Yes'
+      hsnId: 'HSN2',
+      geneName: 'PPIAL4E',
+      uniprotId: 'A0A075B759',
+      proteinName: 'Peptidyl-prolyl cis-trans isomerase A-like 4E',
+      proteinLength: 164,
+      alphafoldId: 'AF-A0A075B759-F1',
+      totalSites: 1,
+      positionOfNitrosylation: '62',
+      cancerCausing: false
     },
     {
-      id: 'R54321',
-      name: 'BRCA1 DNA repair protein',
-      modifications: 5,
-      tissue: 'Breast',
-      confidence: 'High',
-      uniprotId: 'P38398',
-      molecularWeight: '207.7 kDa',
-      modificationSites: 'Cys23, Cys89, Cys156, Cys201, Cys234',
-      pmid: '30345678',
-      cancerAssociated: 'Yes'
+      hsnId: 'HSN3',
+      geneName: 'PPIAL4H',
+      uniprotId: 'A0A075B767',
+      proteinName: 'Peptidyl-prolyl cis-trans isomerase A-like 4H',
+      proteinLength: 164,
+      alphafoldId: 'AF-A0A075B767-F1',
+      totalSites: 1,
+      positionOfNitrosylation: '62',
+      cancerCausing: false
+    },
+    {
+      hsnId: 'HSN9',
+      geneName: 'RBM47',
+      uniprotId: 'A0AV96',
+      proteinName: 'RNA-binding protein 47',
+      proteinLength: 393,
+      alphafoldId: 'AF-A0AV96-F1',
+      totalSites: 2,
+      positionOfNitrosylation: '273, 349',
+      cancerCausing: true
+    },
+    {
+      hsnId: 'HSN10',
+      geneName: 'UBA6',
+      uniprotId: 'A0AVT1',
+      proteinName: 'Ubiquitin-like modifier-activating enzyme 6',
+      proteinLength: 1052,
+      alphafoldId: 'AF-A0AVT1-F1',
+      totalSites: 6,
+      positionOfNitrosylation: '156, 174, 197, 347, 721, 96',
+      cancerCausing: true
     }
   ];
 
@@ -95,7 +114,7 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
         ? prev[category].filter(item => item !== value)
         : [...prev[category], value]
     }));
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   };
 
   const clearAllFilters = () => {
@@ -121,8 +140,8 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
     }
   };
 
-  const getCancerBadgeVariant = (cancerAssociated: string) => {
-    return cancerAssociated === 'Yes' ? 'destructive' : 'secondary';
+  const getCancerBadgeVariant = (cancerCausing: boolean) => {
+    return cancerCausing ? 'destructive' : 'secondary';
   };
 
   useEffect(() => {
@@ -164,7 +183,7 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                 {Object.entries(filterOptions).map(([category, options]) => (
                   <div key={category}>
                     <label className="text-sm font-medium text-gray-700 mb-3 block capitalize">
-                      {category === 'cancerSites' ? 'Cancer Associated' : 
+                      {category === 'cancerSites' ? 'Cancer Causing' : 
                        category === 'totalSites' ? 'Total Sites' : category}
                     </label>
                     <div className="space-y-2 max-h-40 overflow-y-auto">
@@ -218,9 +237,9 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                         className="text-sm border border-gray-300 rounded px-2 py-1"
                       >
                         <option value="relevance">Relevance</option>
-                        <option value="name">Name</option>
-                        <option value="tissue">Tissue</option>
-                        <option value="modifications">Sites Count</option>
+                        <option value="hsnId">HSN ID</option>
+                        <option value="geneName">Gene Name</option>
+                        <option value="totalSites">Total Sites</option>
                       </select>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -260,70 +279,61 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
 
             {/* Results Table */}
             <Card>
-              <CardContent className="p-0">
+              <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="font-semibold text-gray-700">Protein Name</TableHead>
-                      <TableHead className="font-semibold text-gray-700">UniProt ID</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Tissue</TableHead>
-                      <TableHead className="font-semibold text-gray-700">MW</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Sites</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Cancer</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Confidence</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Actions</TableHead>
+                      <TableHead className="font-semibold text-gray-700 min-w-[80px]">HSN ID</TableHead>
+                      <TableHead className="font-semibold text-gray-700 min-w-[100px]">Gene Name</TableHead>
+                      <TableHead className="font-semibold text-gray-700 min-w-[120px]">UniProt ID</TableHead>
+                      <TableHead className="font-semibold text-gray-700 min-w-[200px]">Protein Name</TableHead>
+                      <TableHead className="font-semibold text-gray-700 min-w-[100px]">Protein Length</TableHead>
+                      <TableHead className="font-semibold text-gray-700 min-w-[150px]">AlphaFold ID</TableHead>
+                      <TableHead className="font-semibold text-gray-700 min-w-[100px]">Total Sites</TableHead>
+                      <TableHead className="font-semibold text-gray-700 min-w-[180px]">Position of Nitrosylation</TableHead>
+                      <TableHead className="font-semibold text-gray-700 min-w-[120px]">Cancer Causing</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {sampleResults.map((result) => (
-                      <TableRow key={result.id} className="hover:bg-gray-50 transition-colors">
-                        <TableCell>
-                          <div>
-                            <div className="font-medium text-gray-900">{result.name}</div>
-                            <div className="text-sm text-gray-500">ID: {result.id}</div>
-                          </div>
+                      <TableRow key={result.hsnId} className="hover:bg-gray-50 transition-colors">
+                        <TableCell className="font-medium text-blue-600">
+                          {result.hsnId}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {result.geneName}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="font-mono">
+                          <a 
+                            href={`https://www.uniprot.org/uniprotkb/${result.uniprotId}/entry`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline font-mono text-sm"
+                          >
                             {result.uniprotId}
-                          </Badge>
+                          </a>
                         </TableCell>
-                        <TableCell>
-                          <span className="text-gray-700">{result.tissue}</span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-gray-700 font-mono text-sm">{result.molecularWeight}</span>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-semibold text-blue-600">{result.modifications}</div>
-                            <div className="text-xs text-gray-500 max-w-32 truncate" title={result.modificationSites}>
-                              {result.modificationSites}
-                            </div>
+                        <TableCell className="max-w-[300px]">
+                          <div className="truncate" title={result.proteinName}>
+                            {result.proteinName}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant={getCancerBadgeVariant(result.cancerAssociated)}>
-                            {result.cancerAssociated}
-                          </Badge>
+                        <TableCell className="text-center">
+                          {result.proteinLength}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {result.alphafoldId}
+                        </TableCell>
+                        <TableCell className="text-center font-semibold">
+                          {result.totalSites}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {result.positionOfNitrosylation}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getConfidenceBadgeVariant(result.confidence)}>
-                            {result.confidence}
+                          <Badge variant={getCancerBadgeVariant(result.cancerCausing)}>
+                            {result.cancerCausing ? 'Y' : 'N'}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-1">
-                            <Button variant="ghost" size="sm" title="View Details">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" title="Visualize">
-                              <BarChart3 className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" title="View Publication">
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
