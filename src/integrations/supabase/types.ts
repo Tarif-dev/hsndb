@@ -9,7 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      proteins: {
+        Row: {
+          alphafold_id: string
+          cancer_causing: boolean
+          cancer_types: string[] | null
+          created_at: string
+          gene_name: string
+          hsn_id: string
+          id: string
+          position_of_nitrosylation: string
+          protein_length: number
+          protein_name: string
+          total_sites: number
+          uniprot_id: string
+          updated_at: string
+        }
+        Insert: {
+          alphafold_id: string
+          cancer_causing?: boolean
+          cancer_types?: string[] | null
+          created_at?: string
+          gene_name: string
+          hsn_id: string
+          id?: string
+          position_of_nitrosylation: string
+          protein_length: number
+          protein_name: string
+          total_sites?: number
+          uniprot_id: string
+          updated_at?: string
+        }
+        Update: {
+          alphafold_id?: string
+          cancer_causing?: boolean
+          cancer_types?: string[] | null
+          created_at?: string
+          gene_name?: string
+          hsn_id?: string
+          id?: string
+          position_of_nitrosylation?: string
+          protein_length?: number
+          protein_name?: string
+          total_sites?: number
+          uniprot_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

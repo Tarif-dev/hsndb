@@ -21,6 +21,7 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from '@/components/ui/pagination';
+import { useProteins } from '@/hooks/useProteins';
 
 interface BrowseInterfaceProps {
   initialQuery?: string;
@@ -28,6 +29,7 @@ interface BrowseInterfaceProps {
 
 const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(initialQuery);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortBy, setSortBy] = useState('relevance');
@@ -38,74 +40,38 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
     totalSites: [] as string[]
   });
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page on search
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch proteins data
+  const { data: proteinsResult, isLoading, error } = useProteins({
+    searchQuery: debouncedSearchQuery,
+    filters: {
+      cancerCausing: filters.cancerSites.length > 0 ? filters.cancerSites.includes('Yes') : undefined,
+      totalSites: filters.totalSites[0] || undefined,
+    },
+    sortBy,
+    page: currentPage,
+    itemsPerPage
+  });
+
+  const results = proteinsResult?.data || [];
+  const totalResults = proteinsResult?.count || 0;
+  const totalPages = Math.ceil(totalResults / itemsPerPage);
+
   const filterOptions = {
     tissues: ['Heart', 'Brain', 'Liver', 'Kidney', 'Lung', 'Muscle', 'Blood', 'Prostate', 'Breast'],
     confidence: ['High', 'Medium', 'Low'],
     cancerSites: ['Yes', 'No'],
     totalSites: ['1', '2', '3-5', '6-10', '11+']
   };
-
-  // Sample data matching the screenshot format
-  const sampleResults = [
-    {
-      hsnId: 'HSN1',
-      geneName: 'NUDT4B',
-      uniprotId: 'A0A024RBG1',
-      proteinName: 'Diphosphoinositol polyphosphate phosphohydrolase NUDT4B',
-      proteinLength: 181,
-      alphafoldId: 'AF-A0A024RBG1-F1',
-      totalSites: 1,
-      positionOfNitrosylation: '132',
-      cancerCausing: false
-    },
-    {
-      hsnId: 'HSN2',
-      geneName: 'PPIAL4E',
-      uniprotId: 'A0A075B759',
-      proteinName: 'Peptidyl-prolyl cis-trans isomerase A-like 4E',
-      proteinLength: 164,
-      alphafoldId: 'AF-A0A075B759-F1',
-      totalSites: 1,
-      positionOfNitrosylation: '62',
-      cancerCausing: false
-    },
-    {
-      hsnId: 'HSN3',
-      geneName: 'PPIAL4H',
-      uniprotId: 'A0A075B767',
-      proteinName: 'Peptidyl-prolyl cis-trans isomerase A-like 4H',
-      proteinLength: 164,
-      alphafoldId: 'AF-A0A075B767-F1',
-      totalSites: 1,
-      positionOfNitrosylation: '62',
-      cancerCausing: false
-    },
-    {
-      hsnId: 'HSN9',
-      geneName: 'RBM47',
-      uniprotId: 'A0AV96',
-      proteinName: 'RNA-binding protein 47',
-      proteinLength: 393,
-      alphafoldId: 'AF-A0AV96-F1',
-      totalSites: 2,
-      positionOfNitrosylation: '273, 349',
-      cancerCausing: true
-    },
-    {
-      hsnId: 'HSN10',
-      geneName: 'UBA6',
-      uniprotId: 'A0AVT1',
-      proteinName: 'Ubiquitin-like modifier-activating enzyme 6',
-      proteinLength: 1052,
-      alphafoldId: 'AF-A0AVT1-F1',
-      totalSites: 6,
-      positionOfNitrosylation: '156, 174, 197, 347, 721, 96',
-      cancerCausing: true
-    }
-  ];
-
-  const totalResults = 8247;
-  const totalPages = Math.ceil(totalResults / itemsPerPage);
 
   const toggleFilter = (category: keyof typeof filters, value: string) => {
     setFilters(prev => ({
@@ -131,22 +97,22 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
     return Object.values(filters).reduce((sum, filterArray) => sum + filterArray.length, 0);
   };
 
-  const getConfidenceBadgeVariant = (confidence: string) => {
-    switch (confidence) {
-      case 'High': return 'default';
-      case 'Medium': return 'secondary';
-      case 'Low': return 'outline';
-      default: return 'secondary';
-    }
-  };
-
   const getCancerBadgeVariant = (cancerCausing: boolean) => {
     return cancerCausing ? 'destructive' : 'secondary';
+  };
+
+  const handleSearch = () => {
+    setDebouncedSearchQuery(searchQuery);
+    setCurrentPage(1);
   };
 
   useEffect(() => {
     setSearchQuery(initialQuery);
   }, [initialQuery]);
+
+  if (error) {
+    console.error('Error loading proteins:', error);
+  }
 
   return (
     <section className="py-8 bg-gray-50 min-h-screen">
@@ -218,11 +184,16 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                       placeholder="Search proteins, UniProt IDs, or keywords..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                       className="pl-10"
                     />
                   </div>
-                  <Button className="bg-blue-600 hover:bg-blue-700">
-                    Search
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700"
+                    onClick={handleSearch}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Searching...' : 'Search'}
                   </Button>
                 </div>
 
@@ -237,9 +208,9 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                         className="text-sm border border-gray-300 rounded px-2 py-1"
                       >
                         <option value="relevance">Relevance</option>
-                        <option value="hsnId">HSN ID</option>
-                        <option value="geneName">Gene Name</option>
-                        <option value="totalSites">Total Sites</option>
+                        <option value="hsn_id">HSN ID</option>
+                        <option value="gene_name">Gene Name</option>
+                        <option value="total_sites">Total Sites</option>
                       </select>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -273,128 +244,161 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
             {/* Results Header */}
             <div className="flex justify-between items-center">
               <p className="text-gray-600">
-                Showing <span className="font-semibold">{((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalResults)}</span> of <span className="font-semibold">{totalResults.toLocaleString()}</span> results
+                {isLoading ? (
+                  'Loading...'
+                ) : (
+                  <>
+                    Showing <span className="font-semibold">{((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalResults)}</span> of <span className="font-semibold">{totalResults.toLocaleString()}</span> results
+                  </>
+                )}
               </p>
             </div>
 
             {/* Results Table */}
             <Card>
               <CardContent className="p-0 overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50">
-                      <TableHead className="font-semibold text-gray-700 min-w-[80px]">HSN ID</TableHead>
-                      <TableHead className="font-semibold text-gray-700 min-w-[100px]">Gene Name</TableHead>
-                      <TableHead className="font-semibold text-gray-700 min-w-[120px]">UniProt ID</TableHead>
-                      <TableHead className="font-semibold text-gray-700 min-w-[200px]">Protein Name</TableHead>
-                      <TableHead className="font-semibold text-gray-700 min-w-[100px]">Protein Length</TableHead>
-                      <TableHead className="font-semibold text-gray-700 min-w-[150px]">AlphaFold ID</TableHead>
-                      <TableHead className="font-semibold text-gray-700 min-w-[100px]">Total Sites</TableHead>
-                      <TableHead className="font-semibold text-gray-700 min-w-[180px]">Position of Nitrosylation</TableHead>
-                      <TableHead className="font-semibold text-gray-700 min-w-[120px]">Cancer Causing</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sampleResults.map((result) => (
-                      <TableRow key={result.hsnId} className="hover:bg-gray-50 transition-colors">
-                        <TableCell className="font-medium text-blue-600">
-                          {result.hsnId}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {result.geneName}
-                        </TableCell>
-                        <TableCell>
-                          <a 
-                            href={`https://www.uniprot.org/uniprotkb/${result.uniprotId}/entry`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline font-mono text-sm"
-                          >
-                            {result.uniprotId}
-                          </a>
-                        </TableCell>
-                        <TableCell className="max-w-[300px]">
-                          <div className="truncate" title={result.proteinName}>
-                            {result.proteinName}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {result.proteinLength}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          <a 
-                            href={`https://alphafold.ebi.ac.uk/search/text/${result.alphafoldId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline"
-                          >
-                            {result.alphafoldId}
-                          </a>
-                        </TableCell>
-                        <TableCell className="text-center font-semibold">
-                          {result.totalSites}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {result.positionOfNitrosylation}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getCancerBadgeVariant(result.cancerCausing)}>
-                            {result.cancerCausing ? 'Y' : 'N'}
-                          </Badge>
-                        </TableCell>
+                {isLoading ? (
+                  <div className="p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading proteins...</p>
+                  </div>
+                ) : error ? (
+                  <div className="p-8 text-center">
+                    <p className="text-red-600">Error loading data. Please try again.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-semibold text-gray-700 min-w-[80px]">HSN ID</TableHead>
+                        <TableHead className="font-semibold text-gray-700 min-w-[100px]">Gene Name</TableHead>
+                        <TableHead className="font-semibold text-gray-700 min-w-[120px]">UniProt ID</TableHead>
+                        <TableHead className="font-semibold text-gray-700 min-w-[200px]">Protein Name</TableHead>
+                        <TableHead className="font-semibold text-gray-700 min-w-[100px]">Protein Length</TableHead>
+                        <TableHead className="font-semibold text-gray-700 min-w-[150px]">AlphaFold ID</TableHead>
+                        <TableHead className="font-semibold text-gray-700 min-w-[100px]">Total Sites</TableHead>
+                        <TableHead className="font-semibold text-gray-700 min-w-[180px]">Position of Nitrosylation</TableHead>
+                        <TableHead className="font-semibold text-gray-700 min-w-[120px]">Cancer Causing</TableHead>
+                        <TableHead className="font-semibold text-gray-700 min-w-[150px]">Cancer Types</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {results.map((result) => (
+                        <TableRow key={result.id} className="hover:bg-gray-50 transition-colors">
+                          <TableCell className="font-medium text-blue-600">
+                            {result.hsn_id}
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {result.gene_name}
+                          </TableCell>
+                          <TableCell>
+                            <a 
+                              href={`https://www.uniprot.org/uniprotkb/${result.uniprot_id}/entry`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline font-mono text-sm"
+                            >
+                              {result.uniprot_id}
+                            </a>
+                          </TableCell>
+                          <TableCell className="max-w-[300px]">
+                            <div className="truncate" title={result.protein_name}>
+                              {result.protein_name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {result.protein_length}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            <a 
+                              href={`https://alphafold.ebi.ac.uk/search/text/${result.alphafold_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline"
+                            >
+                              {result.alphafold_id}
+                            </a>
+                          </TableCell>
+                          <TableCell className="text-center font-semibold">
+                            {result.total_sites}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {result.position_of_nitrosylation}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getCancerBadgeVariant(result.cancer_causing)}>
+                              {result.cancer_causing ? 'Y' : 'N'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {result.cancer_types && result.cancer_types.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {result.cancer_types.map((type, index) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {type}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
 
             {/* Pagination */}
-            <div className="flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      href="#" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage > 1) setCurrentPage(currentPage - 1);
-                      }}
-                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                    />
-                  </PaginationItem>
-                  
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const page = i + 1;
-                    return (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(page);
-                          }}
-                          isActive={currentPage === page}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      href="#" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-                      }}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
+            {!isLoading && totalPages > 1 && (
+              <div className="flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) setCurrentPage(currentPage - 1);
+                        }}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const page = i + 1;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setCurrentPage(page);
+                            }}
+                            isActive={currentPage === page}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                        }}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
         </div>
       </div>
