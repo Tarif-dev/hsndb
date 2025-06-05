@@ -322,7 +322,14 @@ const BrowseInterface = ({ initialQuery = '' }: BrowseInterfaceProps) => {
                           {result.proteinLength}
                         </TableCell>
                         <TableCell className="font-mono text-sm">
-                          {result.alphafoldId}
+                          <a 
+                            href={`https://alphafold.ebi.ac.uk/search/text/${result.alphafoldId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            {result.alphafoldId}
+                          </a>
                         </TableCell>
                         <TableCell className="text-center font-semibold">
                           {result.totalSites}
