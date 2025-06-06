@@ -1,15 +1,16 @@
-
 import React, { useState } from 'react';
-import { Menu, X, User, BookOpen, FileSearch, BarChart3 } from 'lucide-react';
+import { Menu, X, User, BookOpen, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { label: 'Browse', href: '/browse', icon: FileSearch },
-    { label: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { label: 'Documentation', href: '/docs', icon: BookOpen },
+    { label: 'Browse', href: '/browse', icon: FileText },
+    { label: 'About Us', href: '/about', icon: User },
+    { label: 'Contribute', href: '/contribute', icon: FileText },
+    { label: 'Docs', href: '/docs', icon: BookOpen },
+    { label: 'Contact Us', href: '/contact', icon: FileText },
   ];
 
   return (
