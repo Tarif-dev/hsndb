@@ -11,48 +11,48 @@ export type Database = {
     Tables: {
       proteins: {
         Row: {
-          alphafold_id: string
-          cancer_causing: boolean
+          alphafold_id: string | null
+          cancer_causing: boolean | null
           cancer_types: string[] | null
           created_at: string
-          gene_name: string
+          gene_name: string | null
           hsn_id: string
           id: string
-          position_of_nitrosylation: string
-          protein_length: number
-          protein_name: string
-          total_sites: number
-          uniprot_id: string
+          positions_of_nitrosylation: string
+          protein_length: number | null
+          protein_name: string | null
+          total_sites: number | null
+          uniprot_id: string | null
           updated_at: string
         }
         Insert: {
-          alphafold_id: string
-          cancer_causing?: boolean
+          alphafold_id?: string | null
+          cancer_causing?: boolean | null
           cancer_types?: string[] | null
           created_at?: string
-          gene_name: string
+          gene_name?: string | null
           hsn_id: string
           id?: string
-          position_of_nitrosylation: string
-          protein_length: number
-          protein_name: string
-          total_sites?: number
-          uniprot_id: string
+          positions_of_nitrosylation: string
+          protein_length?: number | null
+          protein_name?: string | null
+          total_sites?: number | null
+          uniprot_id?: string | null
           updated_at?: string
         }
         Update: {
-          alphafold_id?: string
-          cancer_causing?: boolean
+          alphafold_id?: string | null
+          cancer_causing?: boolean | null
           cancer_types?: string[] | null
           created_at?: string
-          gene_name?: string
+          gene_name?: string | null
           hsn_id?: string
           id?: string
-          position_of_nitrosylation?: string
-          protein_length?: number
-          protein_name?: string
-          total_sites?: number
-          uniprot_id?: string
+          positions_of_nitrosylation?: string
+          protein_length?: number | null
+          protein_name?: string | null
+          total_sites?: number | null
+          uniprot_id?: string | null
           updated_at?: string
         }
         Relationships: []
