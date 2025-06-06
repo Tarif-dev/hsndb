@@ -183,89 +183,90 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                 >
                   {isLoading ? "Searching..." : "Search"}
                 </Button>
-              </div>
-
-              {/* Filter Dropdown */}
-              <div className="mb-4">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full sm:w-auto">
-                      <Filter className="h-4 w-4 mr-2" />
-                      Filters
-                      {getActiveFiltersCount() > 0 && (
-                        <Badge variant="secondary" className="ml-2">
-                          {getActiveFiltersCount()}
-                        </Badge>
-                      )}
-                      <ChevronDown className="h-4 w-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto">
-                    <div className="p-4 space-y-6">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">Filters</span>
+              </div>{" "}
+              {/* Filter and Control Options */}
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                {/* Left side: Filter, Sort by, Show */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {/* Filter Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="w-full sm:w-auto">
+                        <Filter className="h-4 w-4 mr-2" />
+                        Filters
                         {getActiveFiltersCount() > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={clearAllFilters}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Clear All
-                          </Button>
+                          <Badge variant="secondary" className="ml-2">
+                            {getActiveFiltersCount()}
+                          </Badge>
+                        )}
+                        <ChevronDown className="h-4 w-4 ml-2" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto">
+                      <div className="p-4 space-y-6">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold">Filters</span>
+                          {getActiveFiltersCount() > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={clearAllFilters}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Clear All
+                            </Button>
+                          )}
+                        </div>
+                        {Object.entries(filterOptions).map(
+                          ([category, options]) => (
+                            <div key={category}>
+                              {" "}
+                              <label className="text-sm font-medium text-gray-700 mb-3 block capitalize">
+                                {category === "cancerSites"
+                                  ? "Cancer Causing"
+                                  : category === "totalSites"
+                                  ? "Total Sites"
+                                  : category === "cancerTypes"
+                                  ? "Cancer Types"
+                                  : category}
+                              </label>
+                              <div className="space-y-2 max-h-32 overflow-y-auto">
+                                {options.map((option) => (
+                                  <label
+                                    key={option}
+                                    className="flex items-center space-x-2 cursor-pointer"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="rounded"
+                                      checked={filters[
+                                        category as keyof typeof filters
+                                      ].includes(option)}
+                                      onChange={() =>
+                                        toggleFilter(
+                                          category as keyof typeof filters,
+                                          option
+                                        )
+                                      }
+                                    />
+                                    <span className="text-sm text-gray-600">
+                                      {option}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )
                         )}
                       </div>
-                      {Object.entries(filterOptions).map(
-                        ([category, options]) => (
-                          <div key={category}>
-                            {" "}
-                            <label className="text-sm font-medium text-gray-700 mb-3 block capitalize">
-                              {category === "cancerSites"
-                                ? "Cancer Causing"
-                                : category === "totalSites"
-                                ? "Total Sites"
-                                : category === "cancerTypes"
-                                ? "Cancer Types"
-                                : category}
-                            </label>
-                            <div className="space-y-2 max-h-32 overflow-y-auto">
-                              {options.map((option) => (
-                                <label
-                                  key={option}
-                                  className="flex items-center space-x-2 cursor-pointer"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    className="rounded"
-                                    checked={filters[
-                                      category as keyof typeof filters
-                                    ].includes(option)}
-                                    onChange={() =>
-                                      toggleFilter(
-                                        category as keyof typeof filters,
-                                        option
-                                      )
-                                    }
-                                  />
-                                  <span className="text-sm text-gray-600">
-                                    {option}
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
-              {/* Sort and Display Options */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex flex-wrap items-center gap-4">
+                  {/* Sort by dropdown */}
                   <div className="flex items-center space-x-2">
-                    <label className="text-sm text-gray-600">Sort by:</label>
+                    <label className="text-sm text-gray-600 whitespace-nowrap">
+                      Sort by:
+                    </label>
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
@@ -277,8 +278,12 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                       <option value="total_sites">Total Sites</option>
                     </select>
                   </div>
+
+                  {/* Show dropdown */}
                   <div className="flex items-center space-x-2">
-                    <label className="text-sm text-gray-600">Show:</label>
+                    <label className="text-sm text-gray-600 whitespace-nowrap">
+                      Show:
+                    </label>
                     <select
                       value={itemsPerPage}
                       onChange={(e) => setItemsPerPage(Number(e.target.value))}
@@ -291,6 +296,8 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                     </select>
                   </div>
                 </div>
+
+                {/* Right side: Export and Analyze buttons */}
                 <div className="flex space-x-2">
                   <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
@@ -343,34 +350,35 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                 </div>
               ) : (
                 <div className="overflow-x-auto w-full">
+                  {" "}
                   <Table className="w-full table-auto">
                     <TableHeader>
                       <TableRow className="bg-gray-50">
-                        <TableHead className="font-semibold text-gray-700 w-[80px]">
+                        <TableHead className="font-semibold text-gray-700 w-[80px] border-r border-gray-200">
                           HSN ID
                         </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[100px]">
+                        <TableHead className="font-semibold text-gray-700 w-[100px] border-r border-gray-200">
                           Gene Name
                         </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[120px]">
+                        <TableHead className="font-semibold text-gray-700 w-[120px] border-r border-gray-200">
                           UniProt ID
                         </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-auto">
+                        <TableHead className="font-semibold text-gray-700 w-auto border-r border-gray-200">
                           Protein Name
                         </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[80px]">
+                        <TableHead className="font-semibold text-gray-700 w-[80px] border-r border-gray-200">
                           Length
                         </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[120px]">
+                        <TableHead className="font-semibold text-gray-700 w-[120px] border-r border-gray-200">
                           AlphaFold ID
                         </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[80px]">
+                        <TableHead className="font-semibold text-gray-700 w-[80px] border-r border-gray-200">
                           Sites
                         </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[140px]">
+                        <TableHead className="font-semibold text-gray-700 w-[140px] border-r border-gray-200">
                           Nitrosylation Position
                         </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[80px]">
+                        <TableHead className="font-semibold text-gray-700 w-[80px] border-r border-gray-200">
                           Cancer
                         </TableHead>
                         <TableHead className="font-semibold text-gray-700 w-[140px]">
@@ -384,13 +392,13 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                           key={result.id}
                           className="hover:bg-gray-50 transition-colors"
                         >
-                          <TableCell className="font-medium text-blue-600">
+                          <TableCell className="font-medium text-blue-600 border-r border-gray-200">
                             {result.hsn_id}
                           </TableCell>
-                          <TableCell className="font-medium">
+                          <TableCell className="font-medium border-r border-gray-200">
                             {result.gene_name}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="border-r border-gray-200">
                             <a
                               href={`https://www.uniprot.org/uniprotkb/${result.uniprot_id}/entry`}
                               target="_blank"
@@ -400,7 +408,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                               {result.uniprot_id}
                             </a>
                           </TableCell>
-                          <TableCell className="max-w-[300px]">
+                          <TableCell className="max-w-[300px] border-r border-gray-200">
                             <div
                               className="truncate"
                               title={result.protein_name}
@@ -408,10 +416,10 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                               {result.protein_name}
                             </div>
                           </TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center border-r border-gray-200">
                             {result.protein_length}
                           </TableCell>
-                          <TableCell className="font-mono text-sm">
+                          <TableCell className="font-mono text-sm border-r border-gray-200">
                             <a
                               href={`https://alphafold.ebi.ac.uk/search/text/${result.alphafold_id}`}
                               target="_blank"
@@ -421,13 +429,13 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                               {result.alphafold_id}
                             </a>
                           </TableCell>
-                          <TableCell className="text-center font-semibold">
+                          <TableCell className="text-center font-semibold border-r border-gray-200">
                             {result.total_sites}
                           </TableCell>
-                          <TableCell className="font-mono text-sm">
+                          <TableCell className="font-mono text-sm border-r border-gray-200">
                             {result.positions_of_nitrosylation}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="border-r border-gray-200">
                             <Badge
                               variant={getCancerBadgeVariant(
                                 result.cancer_causing

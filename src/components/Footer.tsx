@@ -38,10 +38,10 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              NitroProteome
+              HSNDB
             </h3>
             <p className="text-gray-300 mb-6 leading-relaxed">
-              The world's most comprehensive database of nitrosilated proteins, empowering researchers worldwide to advance our understanding of post-translational modifications.
+              The most comprehensive database of human S-nitrosylated proteins, designed for researchers studying nitric oxide signaling and its role in health and disease.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">
@@ -106,12 +106,12 @@ const Footer = () => {
         {/* Bottom Section */}
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="text-gray-300 text-sm mb-4 md:mb-0">
-            © 2024 NitroProteome Database. All rights reserved.
+            © 2024 HSNDB. All rights reserved.
           </div>
           <div className="flex items-center space-x-6 text-sm text-gray-300">
-            <span>Version 2.1.0</span>
+            <span>Version 0.0.1</span>
             <span>•</span>
-            <span>Last updated: December 2024</span>
+            <span>Last updated: June 2025</span>
             <span>•</span>
             <a href="/status" className="hover:text-blue-400 transition-colors duration-200">
               System Status
