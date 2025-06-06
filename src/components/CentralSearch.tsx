@@ -39,11 +39,15 @@ const CentralSearch = () => {
 
     setIsLoading(true);
     try {
+      console.log('Fetching suggestions for query:', query);
+      
       const { data, error } = await supabase
         .from('proteins')
         .select('hsn_id, gene_name, protein_name, uniprot_id, cancer_causing')
         .or(`gene_name.ilike.%${query}%,protein_name.ilike.%${query}%,uniprot_id.ilike.%${query}%,hsn_id.ilike.%${query}%`)
         .limit(8);
+
+      console.log('Supabase response:', { data, error });
 
       if (error) {
         console.error('Error fetching suggestions:', error);
@@ -51,15 +55,23 @@ const CentralSearch = () => {
         return;
       }
 
+      if (!data || data.length === 0) {
+        console.log('No data returned from query');
+        setSuggestions([]);
+        return;
+      }
+
       const newSuggestions: SearchSuggestion[] = [];
       
       data?.forEach(protein => {
+        console.log('Processing protein:', protein);
+        
         // Add gene name suggestion
         if (protein.gene_name?.toLowerCase().includes(query.toLowerCase())) {
           newSuggestions.push({
             type: 'gene',
             value: protein.gene_name,
-            description: `Gene: ${protein.protein_name}${protein.cancer_causing ? ' (Cancer-related)' : ''}`,
+            description: `Gene: ${protein.protein_name || 'Unknown protein'}${protein.cancer_causing ? ' (Cancer-related)' : ''}`,
             hsn_id: protein.hsn_id
           });
         }
@@ -69,7 +81,7 @@ const CentralSearch = () => {
           newSuggestions.push({
             type: 'protein',
             value: protein.protein_name,
-            description: `Protein: ${protein.gene_name}${protein.cancer_causing ? ' (Cancer-related)' : ''}`,
+            description: `Protein: ${protein.gene_name || 'Unknown gene'}${protein.cancer_causing ? ' (Cancer-related)' : ''}`,
             hsn_id: protein.hsn_id
           });
         }
@@ -79,19 +91,32 @@ const CentralSearch = () => {
           newSuggestions.push({
             type: 'uniprot',
             value: protein.uniprot_id,
-            description: `UniProt: ${protein.gene_name} - ${protein.protein_name}`,
+            description: `UniProt: ${protein.gene_name || 'Unknown'} - ${protein.protein_name || 'Unknown'}`,
+            hsn_id: protein.hsn_id
+          });
+        }
+        
+        // Add HSN ID suggestion
+        if (protein.hsn_id?.toLowerCase().includes(query.toLowerCase())) {
+          newSuggestions.push({
+            type: 'protein',
+            value: protein.hsn_id,
+            description: `HSN ID: ${protein.gene_name || 'Unknown'} - ${protein.protein_name || 'Unknown'}`,
             hsn_id: protein.hsn_id
           });
         }
       });
 
+      console.log('Generated suggestions:', newSuggestions);
+
       // Remove duplicates and limit to 6 suggestions
       const uniqueSuggestions = newSuggestions
         .filter((suggestion, index, self) => 
-          index === self.findIndex(s => s.value === suggestion.value)
+          index === self.findIndex(s => s.value === suggestion.value && s.type === suggestion.type)
         )
         .slice(0, 6);
 
+      console.log('Final unique suggestions:', uniqueSuggestions);
       setSuggestions(uniqueSuggestions);
     } catch (error) {
       console.error('Error fetching suggestions:', error);
