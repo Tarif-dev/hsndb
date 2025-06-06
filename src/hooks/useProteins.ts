@@ -11,7 +11,7 @@ export interface Protein {
   protein_length: number;
   alphafold_id: string;
   total_sites: number;
-  position_of_nitrosylation: string;
+  positions_of_nitrosylation: string; // Fixed: changed from position_of_nitrosylation to positions_of_nitrosylation
   cancer_causing: boolean;
   cancer_types: string[] | null;
   created_at: string;

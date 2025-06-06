@@ -425,7 +425,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                             {result.total_sites}
                           </TableCell>
                           <TableCell className="font-mono text-sm">
-                            {result.position_of_nitrosylation}
+                            {result.positions_of_nitrosylation}
                           </TableCell>
                           <TableCell>
                             <Badge
