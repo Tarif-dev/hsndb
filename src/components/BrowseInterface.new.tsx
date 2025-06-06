@@ -50,9 +50,10 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortBy, setSortBy] = useState("relevance");
   const [filters, setFilters] = useState({
+    tissues: [] as string[],
+    confidence: [] as string[],
     cancerSites: [] as string[],
     totalSites: [] as string[],
-    cancerTypes: [] as string[],
   });
 
   // Debounce search query
@@ -78,8 +79,6 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
           ? filters.cancerSites.includes("Yes")
           : undefined,
       totalSites: filters.totalSites[0] || undefined,
-      cancerTypes:
-        filters.cancerTypes.length > 0 ? filters.cancerTypes : undefined,
     },
     sortBy,
     page: currentPage,
@@ -89,19 +88,22 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
   const results = proteinsResult?.data || [];
   const totalResults = proteinsResult?.count || 0;
   const totalPages = Math.ceil(totalResults / itemsPerPage);
+
   const filterOptions = {
+    tissues: [
+      "Heart",
+      "Brain",
+      "Liver",
+      "Kidney",
+      "Lung",
+      "Muscle",
+      "Blood",
+      "Prostate",
+      "Breast",
+    ],
+    confidence: ["High", "Medium", "Low"],
     cancerSites: ["Yes", "No"],
     totalSites: ["1", "2", "3-5", "6-10", "11+"],
-    cancerTypes: [
-      "Breast",
-      "Lung",
-      "Colon",
-      "Prostate",
-      "Leukemia",
-      "Melanoma",
-      "Pancreatic",
-      "Other",
-    ],
   };
 
   const toggleFilter = (category: keyof typeof filters, value: string) => {
@@ -113,11 +115,13 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
     }));
     setCurrentPage(1);
   };
+
   const clearAllFilters = () => {
     setFilters({
+      tissues: [],
+      confidence: [],
       cancerSites: [],
       totalSites: [],
-      cancerTypes: [],
     });
     setCurrentPage(1);
   };
@@ -218,14 +222,11 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                       {Object.entries(filterOptions).map(
                         ([category, options]) => (
                           <div key={category}>
-                            {" "}
                             <label className="text-sm font-medium text-gray-700 mb-3 block capitalize">
                               {category === "cancerSites"
                                 ? "Cancer Causing"
                                 : category === "totalSites"
                                 ? "Total Sites"
-                                : category === "cancerTypes"
-                                ? "Cancer Types"
                                 : category}
                             </label>
                             <div className="space-y-2 max-h-32 overflow-y-auto">

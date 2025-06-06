@@ -41,9 +41,7 @@ const Footer = () => {
               NitroProteome
             </h3>
             <p className="text-gray-300 mb-6 leading-relaxed">
-              The world's most comprehensive database of nitrosilated proteins, 
-              empowering researchers worldwide to advance our understanding of 
-              post-translational modifications.
+              The world's most comprehensive database of nitrosilated proteins, empowering researchers worldwide to advance our understanding of post-translational modifications.
             </p>
             <div className="flex space-x-4">
               <a href="#" className="text-gray-300 hover:text-blue-400 transition-colors duration-200">
