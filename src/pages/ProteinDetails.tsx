@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import ProteinViewer3D from "@/components/ProteinViewer3D";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -112,7 +113,7 @@ const ProteinDetails = () => {
                 </h1>
 
                 <div className="flex items-center gap-3 mb-4">
-                  <h2 className="text-xl text-muted-foreground">
+                  <h2 className="text-lg text-muted-foreground">
                     {protein.gene_name}
                   </h2>
                   <Button
@@ -333,27 +334,14 @@ const ProteinDetails = () => {
 
             <TabsContent value="structure" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>3D Protein Structure</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="aspect-square bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-blue-200 rounded-full flex items-center justify-center">
-                          <div className="w-8 h-8 bg-blue-500 rounded-full"></div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          3D Structure Viewer
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          AlphaFold: {protein.alphafold_id}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                {/* 3D Protein Structure - Now with real data */}
+                <ProteinViewer3D
+                  uniprotId={protein.uniprot_id}
+                  alphafoldId={protein.alphafold_id}
+                  proteinName={protein.protein_name}
+                />
 
+                {/* Structural Properties */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Structural Properties</CardTitle>
