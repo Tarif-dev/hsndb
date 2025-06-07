@@ -38,6 +38,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useProteins } from "@/hooks/useProteins";
+import { useCancerTypes } from "@/hooks/useCancerTypes";
 
 interface BrowseInterfaceProps {
   initialQuery?: string;
@@ -56,6 +57,10 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
     totalSites: [] as string[],
     cancerTypes: [] as string[],
   });
+
+  // Fetch cancer types from database
+  const { data: cancerTypesFromDB, isLoading: isLoadingCancerTypes } =
+    useCancerTypes();
 
   // Debounce search query
   useEffect(() => {
@@ -87,23 +92,15 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
     page: currentPage,
     itemsPerPage,
   });
-
   const results = proteinsResult?.data || [];
   const totalResults = proteinsResult?.count || 0;
   const totalPages = Math.ceil(totalResults / itemsPerPage);
+
+  // Create filter options with dynamic cancer types
   const filterOptions = {
     cancerSites: ["Yes", "No"],
     totalSites: ["1", "2", "3-5", "6-10", "11+"],
-    cancerTypes: [
-      "Breast",
-      "Lung",
-      "Colon",
-      "Prostate",
-      "Leukemia",
-      "Melanoma",
-      "Pancreatic",
-      "Other",
-    ],
+    cancerTypes: cancerTypesFromDB || [],
   };
 
   const toggleFilter = (category: keyof typeof filters, value: string) => {
@@ -237,29 +234,39 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                                   : category}
                               </label>
                               <div className="space-y-2 max-h-32 overflow-y-auto">
-                                {options.map((option) => (
-                                  <label
-                                    key={option}
-                                    className="flex items-center space-x-2 cursor-pointer"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      className="rounded"
-                                      checked={filters[
-                                        category as keyof typeof filters
-                                      ].includes(option)}
-                                      onChange={() =>
-                                        toggleFilter(
-                                          category as keyof typeof filters,
-                                          option
-                                        )
-                                      }
-                                    />
-                                    <span className="text-sm text-gray-600">
-                                      {option}
+                                {category === "cancerTypes" &&
+                                isLoadingCancerTypes ? (
+                                  <div className="flex items-center justify-center py-2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                    <span className="ml-2 text-sm text-gray-500">
+                                      Loading...
                                     </span>
-                                  </label>
-                                ))}
+                                  </div>
+                                ) : (
+                                  options.map((option) => (
+                                    <label
+                                      key={option}
+                                      className="flex items-center space-x-2 cursor-pointer"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        className="rounded"
+                                        checked={filters[
+                                          category as keyof typeof filters
+                                        ].includes(option)}
+                                        onChange={() =>
+                                          toggleFilter(
+                                            category as keyof typeof filters,
+                                            option
+                                          )
+                                        }
+                                      />
+                                      <span className="text-sm text-gray-600">
+                                        {option}
+                                      </span>
+                                    </label>
+                                  ))
+                                )}
                               </div>
                             </div>
                           )

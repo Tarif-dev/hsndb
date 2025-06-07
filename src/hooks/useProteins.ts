@@ -1,6 +1,5 @@
-
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Protein {
   id: string;
@@ -32,55 +31,61 @@ interface UseProteinsParams {
 
 export const useProteins = (params: UseProteinsParams = {}) => {
   const {
-    searchQuery = '',
+    searchQuery = "",
     filters = {},
-    sortBy = 'hsn_id',
+    sortBy = "hsn_id",
     page = 1,
-    itemsPerPage = 10
+    itemsPerPage = 10,
   } = params;
 
   return useQuery({
-    queryKey: ['proteins', searchQuery, filters, sortBy, page, itemsPerPage],
+    queryKey: ["proteins", searchQuery, filters, sortBy, page, itemsPerPage],
     queryFn: async () => {
-      console.log('Fetching proteins with params:', params);
-      
-      let query = supabase
-        .from('proteins')
-        .select('*', { count: 'exact' });
+      console.log("Fetching proteins with params:", params);
+
+      let query = supabase.from("proteins").select("*", { count: "exact" });
 
       // Apply search filter
       if (searchQuery) {
-        query = query.or(`gene_name.ilike.%${searchQuery}%,protein_name.ilike.%${searchQuery}%,uniprot_id.ilike.%${searchQuery}%,hsn_id.ilike.%${searchQuery}%`);
+        query = query.or(
+          `gene_name.ilike.%${searchQuery}%,protein_name.ilike.%${searchQuery}%,uniprot_id.ilike.%${searchQuery}%,hsn_id.ilike.%${searchQuery}%`
+        );
       }
 
       // Apply filters
       if (filters.cancerCausing !== undefined) {
-        query = query.eq('cancer_causing', filters.cancerCausing);
+        query = query.eq("cancer_causing", filters.cancerCausing);
       }
-
       if (filters.totalSites) {
         switch (filters.totalSites) {
-          case '1':
-            query = query.eq('total_sites', 1);
+          case "1":
+            query = query.eq("total_sites", 1);
             break;
-          case '2':
-            query = query.eq('total_sites', 2);
+          case "2":
+            query = query.eq("total_sites", 2);
             break;
-          case '3-5':
-            query = query.gte('total_sites', 3).lte('total_sites', 5);
+          case "3-5":
+            query = query.gte("total_sites", 3).lte("total_sites", 5);
             break;
-          case '6-10':
-            query = query.gte('total_sites', 6).lte('total_sites', 10);
+          case "6-10":
+            query = query.gte("total_sites", 6).lte("total_sites", 10);
             break;
-          case '11+':
-            query = query.gte('total_sites', 11);
+          case "11+":
+            query = query.gte("total_sites", 11);
             break;
         }
       }
 
+      // Apply cancer types filter
+      if (filters.cancerTypes && filters.cancerTypes.length > 0) {
+        // Use the overlaps operator to check if any of the selected cancer types
+        // are present in the cancer_types array column
+        query = query.overlaps("cancer_types", filters.cancerTypes);
+      }
+
       // Apply sorting
-      const ascending = sortBy !== 'relevance';
-      const orderColumn = sortBy === 'relevance' ? 'hsn_id' : sortBy;
+      const ascending = sortBy !== "relevance";
+      const orderColumn = sortBy === "relevance" ? "hsn_id" : sortBy;
       query = query.order(orderColumn, { ascending });
 
       // Apply pagination
@@ -91,16 +96,16 @@ export const useProteins = (params: UseProteinsParams = {}) => {
       const { data, error, count } = await query;
 
       if (error) {
-        console.error('Error fetching proteins:', error);
+        console.error("Error fetching proteins:", error);
         throw error;
       }
 
-      console.log('Fetched proteins:', data);
-      console.log('Total count:', count);
+      console.log("Fetched proteins:", data);
+      console.log("Total count:", count);
 
       return {
         data: data as Protein[],
-        count: count || 0
+        count: count || 0,
       };
     },
   });
