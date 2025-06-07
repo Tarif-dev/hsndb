@@ -1,5 +1,6 @@
 // filepath: d:\Nitro\src\components\BrowseInterface.tsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -43,6 +44,7 @@ interface BrowseInterfaceProps {
 }
 
 const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [debouncedSearchQuery, setDebouncedSearchQuery] =
     useState(initialQuery);
@@ -136,6 +138,10 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
   const handleSearch = () => {
     setDebouncedSearchQuery(searchQuery);
     setCurrentPage(1);
+  };
+
+  const handleRowClick = (proteinId: string) => {
+    navigate(`/protein/${proteinId}`);
   };
 
   useEffect(() => {
@@ -390,7 +396,8 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                       {results.map((result) => (
                         <TableRow
                           key={result.id}
-                          className="hover:bg-gray-50 transition-colors"
+                          className="hover:bg-gray-50 transition-colors cursor-pointer"
+                          onClick={() => handleRowClick(result.id)}
                         >
                           <TableCell className="font-medium text-blue-600 border-r border-gray-200">
                             {result.hsn_id}
@@ -404,6 +411,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 underline font-mono text-sm"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               {result.uniprot_id}
                             </a>
@@ -425,6 +433,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 underline"
+                              onClick={(e) => e.stopPropagation()}
                             >
                               {result.alphafold_id}
                             </a>
