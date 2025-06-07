@@ -77,7 +77,7 @@ const Footer = () => {
         </div>
 
         {/* Stats Section */}
-        <div className="border-t border-gray-800 pt-8 mb-8">
+        {/* <div className="border-t border-gray-800 pt-8 mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
@@ -101,7 +101,7 @@ const Footer = () => {
               <p className="text-gray-300 text-sm">Publications Cited</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Bottom Section */}
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
