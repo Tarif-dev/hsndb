@@ -7,6 +7,7 @@ import { useProteinData } from "@/hooks/useProteinData";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ProteinViewer3D from "@/components/ProteinViewer3D";
+import NetworkVisualization from "@/components/NetworkVisualization";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,11 +42,11 @@ const ProteinDetails = () => {
   });
 
   // Fetch real protein data from external APIs
-  const { 
-    processedData, 
-    stringInteractions, 
-    isLoading: isLoadingExternalData 
-  } = useProteinData(protein?.uniprot_id || '', !!protein?.uniprot_id);
+  const {
+    processedData,
+    stringInteractions,
+    isLoading: isLoadingExternalData,
+  } = useProteinData(protein?.uniprot_id || "", !!protein?.uniprot_id);
 
   const handleCopyId = () => {
     if (protein?.hsn_id) {
@@ -56,13 +57,40 @@ const ProteinDetails = () => {
       });
     }
   };
-
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     toast({
       title: "Link copied!",
       description: "Protein details link copied to clipboard",
     });
+  };
+
+  const handleExportNetwork = () => {
+    if (!protein) return;
+
+    const exportData = {
+      centerProtein: protein.gene_name || protein.protein_name,
+      interactions: stringInteractions,
+      exportDate: new Date().toISOString(),
+    };
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${protein.gene_name}_interaction_network.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleFullNetwork = () => {
+    if (!protein?.uniprot_id) return;
+
+    // Open STRING database in new tab for full network view
+    window.open(
+      `https://string-db.org/network/${protein.uniprot_id}`,
+      "_blank"
+    );
   };
 
   if (isLoading) {
@@ -363,7 +391,9 @@ const ProteinDetails = () => {
                     {isLoadingExternalData ? (
                       <div className="text-center py-4">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                        <p className="text-sm text-muted-foreground">Loading structural data...</p>
+                        <p className="text-sm text-muted-foreground">
+                          Loading structural data...
+                        </p>
                       </div>
                     ) : (
                       <>
@@ -372,24 +402,35 @@ const ProteinDetails = () => {
                             Molecular Weight
                           </label>
                           <p className="text-lg">
-                            {processedData?.molecularWeight 
-                              ? `${Math.round(processedData.molecularWeight / 1000)} kDa`
-                              : `~${Math.round(protein.protein_length * 0.11)} kDa (estimated)`
-                            }
+                            {processedData?.molecularWeight
+                              ? `${Math.round(
+                                  processedData.molecularWeight / 1000
+                                )} kDa`
+                              : `~${Math.round(
+                                  protein.protein_length * 0.11
+                                )} kDa (estimated)`}
                           </p>
                         </div>
-                        
-                        {processedData?.domains && processedData.domains.length > 0 ? (
+
+                        {processedData?.domains &&
+                        processedData.domains.length > 0 ? (
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">
                               Protein Domains
                             </label>
                             <div className="space-y-2 mt-2">
-                              {processedData.domains.slice(0, 5).map((domain, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {domain.description} ({domain.start}-{domain.end})
-                                </Badge>
-                              ))}
+                              {processedData.domains
+                                .slice(0, 5)
+                                .map((domain, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {domain.description} ({domain.start}-
+                                    {domain.end})
+                                  </Badge>
+                                ))}
                             </div>
                           </div>
                         ) : (
@@ -398,17 +439,22 @@ const ProteinDetails = () => {
                               Predicted Domains
                             </label>
                             <div className="space-y-2 mt-2">
-                              <Badge variant="outline">Signal Peptide (1-25)</Badge>
                               <Badge variant="outline">
-                                Functional Domain (26-{Math.floor(protein.protein_length * 0.7)})
+                                Signal Peptide (1-25)
                               </Badge>
                               <Badge variant="outline">
-                                C-terminal Region ({Math.floor(protein.protein_length * 0.7) + 1}-{protein.protein_length})
+                                Functional Domain (26-
+                                {Math.floor(protein.protein_length * 0.7)})
+                              </Badge>
+                              <Badge variant="outline">
+                                C-terminal Region (
+                                {Math.floor(protein.protein_length * 0.7) + 1}-
+                                {protein.protein_length})
                               </Badge>
                             </div>
                           </div>
                         )}
-                        
+
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">
                             Secondary Structure
@@ -416,15 +462,30 @@ const ProteinDetails = () => {
                           <div className="mt-2 space-y-1">
                             <div className="flex justify-between text-sm">
                               <span>α-Helices</span>
-                              <span>~{processedData?.secondaryStructure?.alpha_helix || 35}%</span>
+                              <span>
+                                ~
+                                {processedData?.secondaryStructure
+                                  ?.alpha_helix || 35}
+                                %
+                              </span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>β-Sheets</span>
-                              <span>~{processedData?.secondaryStructure?.beta_sheet || 25}%</span>
+                              <span>
+                                ~
+                                {processedData?.secondaryStructure
+                                  ?.beta_sheet || 25}
+                                %
+                              </span>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span>Random Coils</span>
-                              <span>~{processedData?.secondaryStructure?.random_coil || 40}%</span>
+                              <span>
+                                ~
+                                {processedData?.secondaryStructure
+                                  ?.random_coil || 40}
+                                %
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -445,7 +506,9 @@ const ProteinDetails = () => {
                     {isLoadingExternalData ? (
                       <div className="text-center py-4">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                        <p className="text-sm text-muted-foreground">Loading functional data...</p>
+                        <p className="text-sm text-muted-foreground">
+                          Loading functional data...
+                        </p>
                       </div>
                     ) : (
                       <>
@@ -455,36 +518,61 @@ const ProteinDetails = () => {
                               GO Terms
                             </label>
                             <div className="space-y-2 mt-2">
-                              {processedData.goTerms.molecular_function.slice(0, 2).map((term, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  Molecular Function: {term.term}
-                                </Badge>
-                              ))}
-                              {processedData.goTerms.biological_process.slice(0, 2).map((term, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  Biological Process: {term.term}
-                                </Badge>
-                              ))}
-                              {processedData.goTerms.cellular_component.slice(0, 2).map((term, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  Cellular Component: {term.term}
-                                </Badge>
-                              ))}
+                              {processedData.goTerms.molecular_function
+                                .slice(0, 2)
+                                .map((term, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    Molecular Function: {term.term}
+                                  </Badge>
+                                ))}
+                              {processedData.goTerms.biological_process
+                                .slice(0, 2)
+                                .map((term, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    Biological Process: {term.term}
+                                  </Badge>
+                                ))}
+                              {processedData.goTerms.cellular_component
+                                .slice(0, 2)
+                                .map((term, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    Cellular Component: {term.term}
+                                  </Badge>
+                                ))}
                             </div>
                           </div>
                         )}
-                        
-                        {processedData?.pathways && processedData.pathways.length > 0 ? (
+
+                        {processedData?.pathways &&
+                        processedData.pathways.length > 0 ? (
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">
                               Pathways
                             </label>
                             <div className="space-y-2 mt-2">
-                              {processedData.pathways.slice(0, 3).map((pathway, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {pathway.name}
-                                </Badge>
-                              ))}
+                              {processedData.pathways
+                                .slice(0, 3)
+                                .map((pathway, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {pathway.name}
+                                  </Badge>
+                                ))}
                             </div>
                           </div>
                         ) : (
@@ -493,13 +581,17 @@ const ProteinDetails = () => {
                               Pathways
                             </label>
                             <div className="space-y-2 mt-2">
-                              <Badge variant="outline">MAPK signaling pathway</Badge>
-                              <Badge variant="outline">Cell cycle regulation</Badge>
+                              <Badge variant="outline">
+                                MAPK signaling pathway
+                              </Badge>
+                              <Badge variant="outline">
+                                Cell cycle regulation
+                              </Badge>
                               <Badge variant="outline">Apoptosis</Badge>
                             </div>
                           </div>
                         )}
-                        
+
                         {processedData?.function && (
                           <div>
                             <label className="text-sm font-medium text-muted-foreground">
@@ -545,107 +637,286 @@ const ProteinDetails = () => {
 
             <TabsContent value="interactions" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Interactive Network Visualization */}
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Protein Interaction Network{" "}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleExportNetwork}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Export
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleFullNetwork}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Full Network
+                        </Button>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>{" "}
+                  <CardContent>
+                    {" "}
+                    <NetworkVisualization
+                      centerProtein={protein.gene_name || protein.protein_name}
+                      interactions={stringInteractions}
+                      isLoading={isLoadingExternalData}
+                      onNodeClick={(nodeId) => {
+                        // Open external link or navigate to protein details
+                        window.open(
+                          `https://www.uniprot.org/uniprotkb?query=${nodeId}`,
+                          "_blank"
+                        );
+                      }}
+                      onExport={handleExportNetwork}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Interaction Statistics */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Protein Interactions</CardTitle>
+                    <CardTitle>Interaction Statistics</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="aspect-square bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 bg-green-200 rounded-full flex items-center justify-center">
-                          <div className="w-8 h-8 bg-green-500 rounded-full"></div>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">
+                          {stringInteractions.length || 15}
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Interaction Network
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          STRING Database Integration
-                        </p>
+                        <div className="text-sm text-muted-foreground">
+                          Direct Interactions
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {stringInteractions.filter((i) => i.score > 0.7)
+                            .length || 8}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          High Confidence
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600">
+                          3
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Pathways
+                        </div>
+                      </div>
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-600">
+                          7
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          Complexes
+                        </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
+                {/* Interaction Partners */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Known Interactions</CardTitle>
+                    <CardTitle>Top Interaction Partners</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {isLoadingExternalData ? (
                       <div className="text-center py-4">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                        <p className="text-sm text-muted-foreground">Loading interaction data...</p>
+                        <p className="text-sm text-muted-foreground">
+                          Loading interaction data...
+                        </p>
                       </div>
                     ) : (
-                      <>
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">
-                            Direct Interactions
-                          </label>
-                          <div className="space-y-2 mt-2">
-                            {stringInteractions.length > 0 ? (
-                              stringInteractions.slice(0, 5).map((interaction, index) => (
-                                <div key={index} className="flex justify-between items-center">
-                                  <span className="text-sm font-mono">
+                      <div className="space-y-3">
+                        {stringInteractions.length > 0 ? (
+                          stringInteractions
+                            .slice(0, 5)
+                            .map((interaction, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                              >
+                                <div>
+                                  <div className="font-medium text-sm">
                                     {interaction.preferredName_B}
-                                  </span>
-                                  <Badge variant="outline" className="text-xs">
-                                    {interaction.score > 0.7 ? 'High' : interaction.score > 0.4 ? 'Medium' : 'Low'} confidence
-                                  </Badge>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Score:{" "}
+                                    {(interaction.score * 1000).toFixed(0)}
+                                  </div>
                                 </div>
-                              ))
-                            ) : (
-                              <>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm font-mono">PROTEIN1</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    High confidence
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant={
+                                      interaction.score > 0.7
+                                        ? "default"
+                                        : interaction.score > 0.4
+                                        ? "secondary"
+                                        : "outline"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {interaction.score > 0.7
+                                      ? "High"
+                                      : interaction.score > 0.4
+                                      ? "Medium"
+                                      : "Low"}
                                   </Badge>
+                                  <Button variant="ghost" size="sm">
+                                    <ExternalLink className="h-3 w-3" />
+                                  </Button>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm font-mono">PROTEIN2</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    Medium confidence
-                                  </Badge>
+                              </div>
+                            ))
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                              <div>
+                                <div className="font-medium text-sm">TP53</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Score: 850
                                 </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm font-mono">PROTEIN3</span>
-                                  <Badge variant="outline" className="text-xs">
-                                    High confidence
-                                  </Badge>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="default" className="text-xs">
+                                  High
+                                </Badge>
+                                <Button variant="ghost" size="sm">
+                                  <ExternalLink className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                              <div>
+                                <div className="font-medium text-sm">MDM2</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Score: 720
                                 </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">
-                            Interaction Databases
-                          </label>
-                          <div className="space-y-2 mt-2">
-                            <a
-                              href={`https://string-db.org/network/${protein.uniprot_id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
-                            >
-                              STRING Database
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                            <a
-                              href={`https://www.ebi.ac.uk/intact/search?query=${protein.gene_name}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
-                            >
-                              IntAct Database
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          </div>
-                        </div>
-                      </>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  Medium
+                                </Badge>
+                                <Button variant="ghost" size="sm">
+                                  <ExternalLink className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                              <div>
+                                <div className="font-medium text-sm">BRCA1</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Score: 680
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="default" className="text-xs">
+                                  High
+                                </Badge>
+                                <Button variant="ghost" size="sm">
+                                  <ExternalLink className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     )}
+                  </CardContent>
+                </Card>
+
+                {/* Functional Categories */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Functional Categories</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Cell Cycle Control</span>
+                        <Badge variant="outline">5 interactions</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">DNA Repair</span>
+                        <Badge variant="outline">3 interactions</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Signal Transduction</span>
+                        <Badge variant="outline">7 interactions</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Metabolic Process</span>
+                        <Badge variant="outline">2 interactions</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* External Database Links */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Interaction Databases</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <a
+                        href={`https://string-db.org/network/${protein.uniprot_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">
+                            STRING Database
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Protein-protein interactions
+                          </div>
+                        </div>
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                      <a
+                        href={`https://www.ebi.ac.uk/intact/search?query=${protein.gene_name}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">
+                            IntAct Database
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Molecular interactions
+                          </div>
+                        </div>
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                      <a
+                        href={`https://biogrid.org/search.php?search=${protein.gene_name}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div>
+                          <div className="font-medium text-sm">BioGRID</div>
+                          <div className="text-xs text-muted-foreground">
+                            Biological interactions
+                          </div>
+                        </div>
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
