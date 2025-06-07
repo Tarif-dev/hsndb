@@ -1,32 +1,35 @@
-
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Download, Share2, Copy } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
+import React from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, ExternalLink, Download, Share2, Copy } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 const ProteinDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { data: protein, isLoading, error } = useQuery({
-    queryKey: ['protein', id],
+  const {
+    data: protein,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["protein", id],
     queryFn: async () => {
-      if (!id) throw new Error('No protein ID provided');
-      
+      if (!id) throw new Error("No protein ID provided");
+
       const { data, error } = await supabase
-        .from('proteins')
-        .select('*')
-        .eq('id', id)
+        .from("proteins")
+        .select("*")
+        .eq("id", id)
         .single();
 
       if (error) throw error;
@@ -70,9 +73,13 @@ const ProteinDetails = () => {
         <Navigation />
         <div className="pt-16 flex items-center justify-center min-h-[50vh]">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground mb-2">Protein Not Found</h1>
-            <p className="text-muted-foreground mb-4">The requested protein could not be found.</p>
-            <Button onClick={() => navigate('/browse')}>Back to Browse</Button>
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Protein Not Found
+            </h1>
+            <p className="text-muted-foreground mb-4">
+              The requested protein could not be found.
+            </p>
+            <Button onClick={() => navigate("/browse")}>Back to Browse</Button>
           </div>
         </div>
       </div>
@@ -90,7 +97,7 @@ const ProteinDetails = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/browse')}
+                onClick={() => navigate("/browse")}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -100,10 +107,14 @@ const ProteinDetails = () => {
 
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div className="flex-1">
-                <h1 className="text-4xl font-bold text-foreground mb-2">{protein.protein_name}</h1>
-                
+                <h1 className="text-4xl font-bold text-foreground mb-2">
+                  {protein.protein_name}
+                </h1>
+
                 <div className="flex items-center gap-3 mb-4">
-                  <h2 className="text-xl text-muted-foreground">{protein.gene_name}</h2>
+                  <h2 className="text-xl text-muted-foreground">
+                    {protein.gene_name}
+                  </h2>
                   <Button
                     variant="outline"
                     size="sm"
@@ -114,13 +125,23 @@ const ProteinDetails = () => {
                     {protein.hsn_id}
                   </Button>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-3 mb-6">
-                  <Badge variant={protein.cancer_causing ? "destructive" : "secondary"}>
-                    {protein.cancer_causing ? "Cancer Associated" : "Non-Cancer Associated"}
+                  <Badge
+                    variant={
+                      protein.cancer_causing ? "destructive" : "secondary"
+                    }
+                  >
+                    {protein.cancer_causing
+                      ? "Cancer Associated"
+                      : "Non-Cancer Associated"}
                   </Badge>
-                  <Badge variant="outline">{protein.total_sites} Nitrosylation Sites</Badge>
-                  <Badge variant="outline">{protein.protein_length} amino acids</Badge>
+                  <Badge variant="outline">
+                    {protein.total_sites} Nitrosylation Sites
+                  </Badge>
+                  <Badge variant="outline">
+                    {protein.protein_length} amino acids
+                  </Badge>
                 </div>
               </div>
 
@@ -158,15 +179,21 @@ const ProteinDetails = () => {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">HSN ID</label>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          HSN ID
+                        </label>
                         <p className="text-lg font-mono">{protein.hsn_id}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">Gene Name</label>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Gene Name
+                        </label>
                         <p className="text-lg">{protein.gene_name}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">UniProt ID</label>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          UniProt ID
+                        </label>
                         <a
                           href={`https://www.uniprot.org/uniprotkb/${protein.uniprot_id}/entry`}
                           target="_blank"
@@ -178,7 +205,9 @@ const ProteinDetails = () => {
                         </a>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">AlphaFold ID</label>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          AlphaFold ID
+                        </label>
                         <a
                           href={`https://alphafold.ebi.ac.uk/search/text/${protein.alphafold_id}`}
                           target="_blank"
@@ -194,23 +223,35 @@ const ProteinDetails = () => {
                     <Separator />
 
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Protein Name</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Protein Name
+                      </label>
                       <p className="text-lg mt-1">{protein.protein_name}</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">Protein Length</label>
-                        <p className="text-lg">{protein.protein_length} amino acids</p>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Protein Length
+                        </label>
+                        <p className="text-lg">
+                          {protein.protein_length} amino acids
+                        </p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">Total Nitrosylation Sites</label>
-                        <p className="text-lg font-semibold">{protein.total_sites}</p>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Total Nitrosylation Sites
+                        </label>
+                        <p className="text-lg font-semibold">
+                          {protein.total_sites}
+                        </p>
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Nitrosylation Positions</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Nitrosylation Positions
+                      </label>
                       <p className="text-lg font-mono mt-1 bg-muted p-2 rounded">
                         {protein.positions_of_nitrosylation}
                       </p>
@@ -225,29 +266,45 @@ const ProteinDetails = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Cancer Association</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Cancer Association
+                      </label>
                       <div className="mt-2">
-                        <Badge variant={protein.cancer_causing ? "destructive" : "secondary"} className="text-sm">
+                        <Badge
+                          variant={
+                            protein.cancer_causing ? "destructive" : "secondary"
+                          }
+                          className="text-sm"
+                        >
                           {protein.cancer_causing ? "Yes" : "No"}
                         </Badge>
                       </div>
                     </div>
 
-                    {protein.cancer_types && protein.cancer_types.length > 0 && (
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Associated Cancer Types</label>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {protein.cancer_types.map((type, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {type}
-                            </Badge>
-                          ))}
+                    {protein.cancer_types &&
+                      protein.cancer_types.length > 0 && (
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">
+                            Associated Cancer Types
+                          </label>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {protein.cancer_types.map((type, index) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="text-xs"
+                              >
+                                {type}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     <div className="pt-4">
-                      <h4 className="font-medium mb-2">Cancer Research Links</h4>
+                      <h4 className="font-medium mb-2">
+                        Cancer Research Links
+                      </h4>
                       <div className="space-y-2">
                         <a
                           href={`https://www.ncbi.nlm.nih.gov/gene/?term=${protein.gene_name}`}
@@ -286,8 +343,12 @@ const ProteinDetails = () => {
                         <div className="w-16 h-16 mx-auto mb-4 bg-blue-200 rounded-full flex items-center justify-center">
                           <div className="w-8 h-8 bg-blue-500 rounded-full"></div>
                         </div>
-                        <p className="text-sm text-muted-foreground">3D Structure Viewer</p>
-                        <p className="text-xs text-muted-foreground mt-1">AlphaFold: {protein.alphafold_id}</p>
+                        <p className="text-sm text-muted-foreground">
+                          3D Structure Viewer
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          AlphaFold: {protein.alphafold_id}
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -299,19 +360,34 @@ const ProteinDetails = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Molecular Weight</label>
-                      <p className="text-lg">~{Math.round(protein.protein_length * 0.11)} kDa</p>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Molecular Weight
+                      </label>
+                      <p className="text-lg">
+                        ~{Math.round(protein.protein_length * 0.11)} kDa
+                      </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Predicted Domains</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Predicted Domains
+                      </label>
                       <div className="space-y-2 mt-2">
                         <Badge variant="outline">Signal Peptide (1-25)</Badge>
-                        <Badge variant="outline">Functional Domain (26-{Math.floor(protein.protein_length * 0.7)})</Badge>
-                        <Badge variant="outline">C-terminal Region ({Math.floor(protein.protein_length * 0.7) + 1}-{protein.protein_length})</Badge>
+                        <Badge variant="outline">
+                          Functional Domain (26-
+                          {Math.floor(protein.protein_length * 0.7)})
+                        </Badge>
+                        <Badge variant="outline">
+                          C-terminal Region (
+                          {Math.floor(protein.protein_length * 0.7) + 1}-
+                          {protein.protein_length})
+                        </Badge>
                       </div>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Secondary Structure</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Secondary Structure
+                      </label>
                       <div className="mt-2 space-y-1">
                         <div className="flex justify-between text-sm">
                           <span>α-Helices</span>
@@ -340,15 +416,25 @@ const ProteinDetails = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">GO Terms</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        GO Terms
+                      </label>
                       <div className="space-y-2 mt-2">
-                        <Badge variant="outline">Molecular Function: Protein binding</Badge>
-                        <Badge variant="outline">Biological Process: Signal transduction</Badge>
-                        <Badge variant="outline">Cellular Component: Cytoplasm</Badge>
+                        <Badge variant="outline">
+                          Molecular Function: Protein binding
+                        </Badge>
+                        <Badge variant="outline">
+                          Biological Process: Signal transduction
+                        </Badge>
+                        <Badge variant="outline">
+                          Cellular Component: Cytoplasm
+                        </Badge>
                       </div>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Pathways</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Pathways
+                      </label>
                       <div className="space-y-2 mt-2">
                         <Badge variant="outline">MAPK signaling pathway</Badge>
                         <Badge variant="outline">Cell cycle regulation</Badge>
@@ -364,14 +450,19 @@ const ProteinDetails = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Functional Impact</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Functional Impact
+                      </label>
                       <p className="text-sm mt-1">
-                        S-nitrosylation at {protein.total_sites} site(s) may regulate protein activity, 
-                        localization, and protein-protein interactions.
+                        S-nitrosylation at {protein.total_sites} site(s) may
+                        regulate protein activity, localization, and
+                        protein-protein interactions.
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Modified Residues</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Modified Residues
+                      </label>
                       <p className="text-sm font-mono mt-1 bg-muted p-2 rounded">
                         {protein.positions_of_nitrosylation}
                       </p>
@@ -393,8 +484,12 @@ const ProteinDetails = () => {
                         <div className="w-16 h-16 mx-auto mb-4 bg-green-200 rounded-full flex items-center justify-center">
                           <div className="w-8 h-8 bg-green-500 rounded-full"></div>
                         </div>
-                        <p className="text-sm text-muted-foreground">Interaction Network</p>
-                        <p className="text-xs text-muted-foreground mt-1">STRING Database Integration</p>
+                        <p className="text-sm text-muted-foreground">
+                          Interaction Network
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          STRING Database Integration
+                        </p>
                       </div>
                     </div>
                   </CardContent>
@@ -406,25 +501,35 @@ const ProteinDetails = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Direct Interactions</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Direct Interactions
+                      </label>
                       <div className="space-y-2 mt-2">
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-mono">PROTEIN1</span>
-                          <Badge variant="outline" className="text-xs">High confidence</Badge>
+                          <Badge variant="outline" className="text-xs">
+                            High confidence
+                          </Badge>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-mono">PROTEIN2</span>
-                          <Badge variant="outline" className="text-xs">Medium confidence</Badge>
+                          <Badge variant="outline" className="text-xs">
+                            Medium confidence
+                          </Badge>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-mono">PROTEIN3</span>
-                          <Badge variant="outline" className="text-xs">High confidence</Badge>
+                          <Badge variant="outline" className="text-xs">
+                            High confidence
+                          </Badge>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div>
-                      <label className="text-sm font-medium text-muted-foreground">Interaction Databases</label>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Interaction Databases
+                      </label>
                       <div className="space-y-2 mt-2">
                         <a
                           href={`https://string-db.org/network/${protein.uniprot_id}`}
