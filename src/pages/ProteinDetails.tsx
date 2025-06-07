@@ -100,8 +100,10 @@ const ProteinDetails = () => {
 
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
               <div className="flex-1">
+                <h1 className="text-4xl font-bold text-foreground mb-2">{protein.protein_name}</h1>
+                
                 <div className="flex items-center gap-3 mb-4">
-                  <h1 className="text-3xl font-bold text-foreground">{protein.gene_name}</h1>
+                  <h2 className="text-xl text-muted-foreground">{protein.gene_name}</h2>
                   <Button
                     variant="outline"
                     size="sm"
@@ -112,8 +114,6 @@ const ProteinDetails = () => {
                     {protein.hsn_id}
                   </Button>
                 </div>
-                
-                <h2 className="text-xl text-muted-foreground mb-4">{protein.protein_name}</h2>
                 
                 <div className="flex flex-wrap gap-3 mb-6">
                   <Badge variant={protein.cancer_causing ? "destructive" : "secondary"}>
