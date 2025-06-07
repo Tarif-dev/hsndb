@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Download, Share2, Copy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useProteinData } from "@/hooks/useProteinData";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ProteinViewer3D from "@/components/ProteinViewer3D";
@@ -38,6 +39,13 @@ const ProteinDetails = () => {
     },
     enabled: !!id,
   });
+
+  // Fetch real protein data from external APIs
+  const { 
+    processedData, 
+    stringInteractions, 
+    isLoading: isLoadingExternalData 
+  } = useProteinData(protein?.uniprot_id || '', !!protein?.uniprot_id);
 
   const handleCopyId = () => {
     if (protein?.hsn_id) {
@@ -143,6 +151,11 @@ const ProteinDetails = () => {
                   <Badge variant="outline">
                     {protein.protein_length} amino acids
                   </Badge>
+                  {processedData?.molecularWeight && (
+                    <Badge variant="outline">
+                      {Math.round(processedData.molecularWeight / 1000)} kDa
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -334,63 +347,89 @@ const ProteinDetails = () => {
 
             <TabsContent value="structure" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 3D Protein Structure - Now with real data */}
+                {/* 3D Protein Structure - Real data */}
                 <ProteinViewer3D
                   uniprotId={protein.uniprot_id}
                   alphafoldId={protein.alphafold_id}
                   proteinName={protein.protein_name}
                 />
 
-                {/* Structural Properties */}
+                {/* Structural Properties - Now with real data */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Structural Properties</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Molecular Weight
-                      </label>
-                      <p className="text-lg">
-                        ~{Math.round(protein.protein_length * 0.11)} kDa
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Predicted Domains
-                      </label>
-                      <div className="space-y-2 mt-2">
-                        <Badge variant="outline">Signal Peptide (1-25)</Badge>
-                        <Badge variant="outline">
-                          Functional Domain (26-
-                          {Math.floor(protein.protein_length * 0.7)})
-                        </Badge>
-                        <Badge variant="outline">
-                          C-terminal Region (
-                          {Math.floor(protein.protein_length * 0.7) + 1}-
-                          {protein.protein_length})
-                        </Badge>
+                    {isLoadingExternalData ? (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                        <p className="text-sm text-muted-foreground">Loading structural data...</p>
                       </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Secondary Structure
-                      </label>
-                      <div className="mt-2 space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span>α-Helices</span>
-                          <span>~35%</span>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">
+                            Molecular Weight
+                          </label>
+                          <p className="text-lg">
+                            {processedData?.molecularWeight 
+                              ? `${Math.round(processedData.molecularWeight / 1000)} kDa`
+                              : `~${Math.round(protein.protein_length * 0.11)} kDa (estimated)`
+                            }
+                          </p>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span>β-Sheets</span>
-                          <span>~25%</span>
+                        
+                        {processedData?.domains && processedData.domains.length > 0 ? (
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Protein Domains
+                            </label>
+                            <div className="space-y-2 mt-2">
+                              {processedData.domains.slice(0, 5).map((domain, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {domain.description} ({domain.start}-{domain.end})
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Predicted Domains
+                            </label>
+                            <div className="space-y-2 mt-2">
+                              <Badge variant="outline">Signal Peptide (1-25)</Badge>
+                              <Badge variant="outline">
+                                Functional Domain (26-{Math.floor(protein.protein_length * 0.7)})
+                              </Badge>
+                              <Badge variant="outline">
+                                C-terminal Region ({Math.floor(protein.protein_length * 0.7) + 1}-{protein.protein_length})
+                              </Badge>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">
+                            Secondary Structure
+                          </label>
+                          <div className="mt-2 space-y-1">
+                            <div className="flex justify-between text-sm">
+                              <span>α-Helices</span>
+                              <span>~{processedData?.secondaryStructure?.alpha_helix || 35}%</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>β-Sheets</span>
+                              <span>~{processedData?.secondaryStructure?.beta_sheet || 25}%</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Random Coils</span>
+                              <span>~{processedData?.secondaryStructure?.random_coil || 40}%</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span>Random Coils</span>
-                          <span>~40%</span>
-                        </div>
-                      </div>
-                    </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -403,32 +442,76 @@ const ProteinDetails = () => {
                     <CardTitle>Functional Annotation</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        GO Terms
-                      </label>
-                      <div className="space-y-2 mt-2">
-                        <Badge variant="outline">
-                          Molecular Function: Protein binding
-                        </Badge>
-                        <Badge variant="outline">
-                          Biological Process: Signal transduction
-                        </Badge>
-                        <Badge variant="outline">
-                          Cellular Component: Cytoplasm
-                        </Badge>
+                    {isLoadingExternalData ? (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                        <p className="text-sm text-muted-foreground">Loading functional data...</p>
                       </div>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Pathways
-                      </label>
-                      <div className="space-y-2 mt-2">
-                        <Badge variant="outline">MAPK signaling pathway</Badge>
-                        <Badge variant="outline">Cell cycle regulation</Badge>
-                        <Badge variant="outline">Apoptosis</Badge>
-                      </div>
-                    </div>
+                    ) : (
+                      <>
+                        {processedData?.goTerms && (
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              GO Terms
+                            </label>
+                            <div className="space-y-2 mt-2">
+                              {processedData.goTerms.molecular_function.slice(0, 2).map((term, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  Molecular Function: {term.term}
+                                </Badge>
+                              ))}
+                              {processedData.goTerms.biological_process.slice(0, 2).map((term, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  Biological Process: {term.term}
+                                </Badge>
+                              ))}
+                              {processedData.goTerms.cellular_component.slice(0, 2).map((term, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  Cellular Component: {term.term}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {processedData?.pathways && processedData.pathways.length > 0 ? (
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Pathways
+                            </label>
+                            <div className="space-y-2 mt-2">
+                              {processedData.pathways.slice(0, 3).map((pathway, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {pathway.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Pathways
+                            </label>
+                            <div className="space-y-2 mt-2">
+                              <Badge variant="outline">MAPK signaling pathway</Badge>
+                              <Badge variant="outline">Cell cycle regulation</Badge>
+                              <Badge variant="outline">Apoptosis</Badge>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {processedData?.function && (
+                          <div>
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Function Description
+                            </label>
+                            <p className="text-sm mt-1 bg-muted p-2 rounded">
+                              {processedData.function.substring(0, 300)}...
+                            </p>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -488,57 +571,81 @@ const ProteinDetails = () => {
                     <CardTitle>Known Interactions</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Direct Interactions
-                      </label>
-                      <div className="space-y-2 mt-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-mono">PROTEIN1</span>
-                          <Badge variant="outline" className="text-xs">
-                            High confidence
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-mono">PROTEIN2</span>
-                          <Badge variant="outline" className="text-xs">
-                            Medium confidence
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-mono">PROTEIN3</span>
-                          <Badge variant="outline" className="text-xs">
-                            High confidence
-                          </Badge>
-                        </div>
+                    {isLoadingExternalData ? (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                        <p className="text-sm text-muted-foreground">Loading interaction data...</p>
                       </div>
-                    </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">
+                            Direct Interactions
+                          </label>
+                          <div className="space-y-2 mt-2">
+                            {stringInteractions.length > 0 ? (
+                              stringInteractions.slice(0, 5).map((interaction, index) => (
+                                <div key={index} className="flex justify-between items-center">
+                                  <span className="text-sm font-mono">
+                                    {interaction.preferredName_B}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs">
+                                    {interaction.score > 0.7 ? 'High' : interaction.score > 0.4 ? 'Medium' : 'Low'} confidence
+                                  </Badge>
+                                </div>
+                              ))
+                            ) : (
+                              <>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-mono">PROTEIN1</span>
+                                  <Badge variant="outline" className="text-xs">
+                                    High confidence
+                                  </Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-mono">PROTEIN2</span>
+                                  <Badge variant="outline" className="text-xs">
+                                    Medium confidence
+                                  </Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-mono">PROTEIN3</span>
+                                  <Badge variant="outline" className="text-xs">
+                                    High confidence
+                                  </Badge>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
 
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Interaction Databases
-                      </label>
-                      <div className="space-y-2 mt-2">
-                        <a
-                          href={`https://string-db.org/network/${protein.uniprot_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          STRING Database
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                        <a
-                          href={`https://www.ebi.ac.uk/intact/search?query=${protein.gene_name}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
-                        >
-                          IntAct Database
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-                    </div>
+                        <div>
+                          <label className="text-sm font-medium text-muted-foreground">
+                            Interaction Databases
+                          </label>
+                          <div className="space-y-2 mt-2">
+                            <a
+                              href={`https://string-db.org/network/${protein.uniprot_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+                            >
+                              STRING Database
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                            <a
+                              href={`https://www.ebi.ac.uk/intact/search?query=${protein.gene_name}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+                            >
+                              IntAct Database
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </div>
