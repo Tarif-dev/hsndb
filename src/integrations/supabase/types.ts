@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      formats: {
+        Row: {
+          created_at: string
+          fasta: string | null
+          hsn_id: string | null
+          id: number
+          uniprot_id: string | null
+          update_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          fasta?: string | null
+          hsn_id?: string | null
+          id?: number
+          uniprot_id?: string | null
+          update_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          fasta?: string | null
+          hsn_id?: string | null
+          id?: number
+          uniprot_id?: string | null
+          update_at?: string | null
+        }
+        Relationships: []
+      }
       proteins: {
         Row: {
           alphafold_id: string | null

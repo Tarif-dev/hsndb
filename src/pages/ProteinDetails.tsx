@@ -374,15 +374,15 @@ const ProteinDetails = () => {
             </TabsContent>
 
             <TabsContent value="structure" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 3D Protein Structure - Real data */}
+              {/* 3D Protein Structure - Full width with integrated details and structural properties below */}
+              <div className="space-y-6">
                 <ProteinViewer3D
                   uniprotId={protein.uniprot_id}
                   alphafoldId={protein.alphafold_id}
                   proteinName={protein.protein_name}
                 />
 
-                {/* Structural Properties - Now with real data */}
+                {/* Structural Properties - Now displayed below the 3D viewer */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Structural Properties</CardTitle>

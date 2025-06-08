@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -258,83 +257,84 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
 
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Main 3D Viewer */}
-        <div className="lg:col-span-3">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center gap-2">
-                  3D Protein Structure
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Hover over the structure to see amino acid details in the side panel</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </CardTitle>
-                <div className="flex gap-2">
-                  <Badge variant="outline" className="text-xs">
-                    AlphaFold: {alphafoldId}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    UniProt: {uniprotId}
-                  </Badge>
-                </div>
+      <div className="space-y-6">
+        {/* Main 3D Viewer with integrated Residue Details */}
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center gap-2">
+                3D Protein Structure
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Hover over the structure to see amino acid details in the side panel</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+              <div className="flex gap-2">
+                <Badge variant="outline" className="text-xs">
+                  AlphaFold: {alphafoldId}
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  UniProt: {uniprotId}
+                </Badge>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Controls */}
-              <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">Style:</label>
-                  <Select value={style} onValueChange={updateStyle}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cartoon">Cartoon</SelectItem>
-                      <SelectItem value="stick">Stick</SelectItem>
-                      <SelectItem value="sphere">Sphere</SelectItem>
-                      <SelectItem value="line">Line</SelectItem>
-                      <SelectItem value="surface">Surface</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <label className="text-sm font-medium">Color:</label>
-                  <Select value={colorScheme} onValueChange={updateColorScheme}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="spectrum">Spectrum</SelectItem>
-                      <SelectItem value="chain">By Chain</SelectItem>
-                      <SelectItem value="residue">By Residue</SelectItem>
-                      <SelectItem value="white">White</SelectItem>
-                      <SelectItem value="grey">Grey</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex gap-1">
-                  <Button variant="outline" size="sm" onClick={resetView}>
-                    <RotateCcw className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={downloadImage}>
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={toggleFullscreen}>
-                    <Maximize className="h-4 w-4" />
-                  </Button>
-                </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Controls */}
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Style:</label>
+                <Select value={style} onValueChange={updateStyle}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cartoon">Cartoon</SelectItem>
+                    <SelectItem value="stick">Stick</SelectItem>
+                    <SelectItem value="sphere">Sphere</SelectItem>
+                    <SelectItem value="line">Line</SelectItem>
+                    <SelectItem value="surface">Surface</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+              
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Color:</label>
+                <Select value={colorScheme} onValueChange={updateColorScheme}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="spectrum">Spectrum</SelectItem>
+                    <SelectItem value="chain">By Chain</SelectItem>
+                    <SelectItem value="residue">By Residue</SelectItem>
+                    <SelectItem value="white">White</SelectItem>
+                    <SelectItem value="grey">Grey</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" onClick={resetView}>
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadImage}>
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={toggleFullscreen}>
+                  <Maximize className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
 
-              {/* 3D Viewer */}
-              <div className="relative">
+            {/* 3D Viewer with Side Panel */}
+            <div className="flex gap-4">
+              {/* 3D Viewer - Takes most of the space */}
+              <div className="flex-1 relative">
                 <div 
                   ref={viewerRef} 
                   className="w-full h-96 bg-white rounded-lg border border-border overflow-hidden cursor-pointer"
@@ -351,94 +351,109 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                 )}
               </div>
 
-              {/* Instructions */}
-              <div className="text-xs text-muted-foreground bg-muted p-3 rounded space-y-1">
-                <div><strong>Navigation:</strong> Left click & drag to rotate • Right click & drag to zoom • Middle click & drag to pan</div>
-                <div><strong>Interaction:</strong> Hover over any part of the protein to see amino acid residue details in the side panel</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Side Panel for Residue Details */}
-        <div className="lg:col-span-1">
-          <Card className="h-fit sticky top-4">
-            <CardHeader>
-              <CardTitle className="text-lg">Residue Details</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {hoveredResidue ? (
-                <div className="space-y-4">
-                  {/* Header with badges */}
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="text-sm">
-                      {hoveredResidue.chain}:{hoveredResidue.resi}
-                    </Badge>
-                    <Badge 
-                      variant={aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties]?.hydrophobic ? "default" : "outline"} 
-                      className="text-sm"
-                    >
-                      {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties]?.symbol || hoveredResidue.resn}
-                    </Badge>
-                  </div>
-                  
-                  {/* Amino acid info */}
-                  {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties] && (
-                    <div className="space-y-3">
-                      <div>
-                        <h4 className="font-semibold text-base">
-                          {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties].name}
-                        </h4>
+              {/* Residue Details Panel - Fixed width on the right */}
+              <div className="w-80 flex-shrink-0">
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Residue Details</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {hoveredResidue ? (
+                      <div className="space-y-4">
+                        {/* Header with badges */}
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="secondary" className="text-sm">
+                            {hoveredResidue.chain}:{hoveredResidue.resi}
+                          </Badge>
+                          <Badge 
+                            variant={aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties]?.hydrophobic ? "default" : "outline"} 
+                            className="text-sm"
+                          >
+                            {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties]?.symbol || hoveredResidue.resn}
+                          </Badge>
+                        </div>
+                        
+                        {/* Amino acid info */}
+                        {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties] && (
+                          <div className="space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-base">
+                                {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties].name}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties].type}
+                              </p>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 gap-3 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Chain:</span>
+                                <span className="font-medium">{hoveredResidue.chain}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Position:</span>
+                                <span className="font-medium">{hoveredResidue.resi}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Residue:</span>
+                                <span className="font-medium">{hoveredResidue.resn}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Property:</span>
+                                <span className="font-medium">
+                                  {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties].hydrophobic ? 'Hydrophobic' : 'Hydrophilic'}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="text-xs space-y-1 pt-2 border-t">
+                              <div className="font-medium text-muted-foreground">3D Coordinates:</div>
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>X: {hoveredResidue.position.x.toFixed(2)}</div>
+                                <div>Y: {hoveredResidue.position.y.toFixed(2)}</div>
+                                <div>Z: {hoveredResidue.position.z.toFixed(2)}</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+                          <div className="w-8 h-8 bg-muted-foreground/20 rounded-full"></div>
+                        </div>
                         <p className="text-sm text-muted-foreground">
-                          {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties].type}
+                          Hover over the protein structure to see residue details
                         </p>
                       </div>
-                      
-                      <div className="grid grid-cols-1 gap-3 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Chain:</span>
-                          <span className="font-medium">{hoveredResidue.chain}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Position:</span>
-                          <span className="font-medium">{hoveredResidue.resi}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Residue:</span>
-                          <span className="font-medium">{hoveredResidue.resn}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Property:</span>
-                          <span className="font-medium">
-                            {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties].hydrophobic ? 'Hydrophobic' : 'Hydrophilic'}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="text-xs space-y-1 pt-2 border-t">
-                        <div className="font-medium text-muted-foreground">3D Coordinates:</div>
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          <div>X: {hoveredResidue.position.x.toFixed(2)}</div>
-                          <div>Y: {hoveredResidue.position.y.toFixed(2)}</div>
-                          <div>Z: {hoveredResidue.position.z.toFixed(2)}</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-                    <div className="w-8 h-8 bg-muted-foreground/20 rounded-full"></div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Hover over the protein structure to see residue details
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="text-xs text-muted-foreground bg-muted p-3 rounded space-y-1">
+              <div><strong>Navigation:</strong> Left click & drag to rotate • Right click & drag to zoom • Middle click & drag to pan</div>
+              <div><strong>Interaction:</strong> Hover over any part of the protein to see amino acid residue details in the side panel</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Structural Properties - Now below the 3D viewer */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Structural Properties</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* This will be populated with real structural data from the parent component */}
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground">
+                Structural properties will be displayed here based on external data
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </TooltipProvider>
   );
