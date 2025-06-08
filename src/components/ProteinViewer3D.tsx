@@ -1,9 +1,9 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Loader2, RotateCcw, Download, Maximize, Info } from 'lucide-react';
 
@@ -39,32 +39,29 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
   const [style, setStyle] = useState('cartoon');
   const [colorScheme, setColorScheme] = useState('spectrum');
   const [hoveredResidue, setHoveredResidue] = useState<ResidueInfo | null>(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [highlightedAtoms, setHighlightedAtoms] = useState<any[]>([]);
 
   // Amino acid properties lookup
   const aminoAcidProperties = {
-    'ALA': { name: 'Alanine', type: 'Nonpolar', symbol: 'A', hydrophobic: true },
-    'ARG': { name: 'Arginine', type: 'Positively charged', symbol: 'R', hydrophobic: false },
-    'ASN': { name: 'Asparagine', type: 'Polar', symbol: 'N', hydrophobic: false },
-    'ASP': { name: 'Aspartic acid', type: 'Negatively charged', symbol: 'D', hydrophobic: false },
-    'CYS': { name: 'Cysteine', type: 'Polar', symbol: 'C', hydrophobic: false },
-    'GLN': { name: 'Glutamine', type: 'Polar', symbol: 'Q', hydrophobic: false },
-    'GLU': { name: 'Glutamic acid', type: 'Negatively charged', symbol: 'E', hydrophobic: false },
-    'GLY': { name: 'Glycine', type: 'Nonpolar', symbol: 'G', hydrophobic: true },
-    'HIS': { name: 'Histidine', type: 'Positively charged', symbol: 'H', hydrophobic: false },
-    'ILE': { name: 'Isoleucine', type: 'Nonpolar', symbol: 'I', hydrophobic: true },
-    'LEU': { name: 'Leucine', type: 'Nonpolar', symbol: 'L', hydrophobic: true },
-    'LYS': { name: 'Lysine', type: 'Positively charged', symbol: 'K', hydrophobic: false },
-    'MET': { name: 'Methionine', type: 'Nonpolar', symbol: 'M', hydrophobic: true },
-    'PHE': { name: 'Phenylalanine', type: 'Nonpolar', symbol: 'F', hydrophobic: true },
-    'PRO': { name: 'Proline', type: 'Nonpolar', symbol: 'P', hydrophobic: true },
-    'SER': { name: 'Serine', type: 'Polar', symbol: 'S', hydrophobic: false },
-    'THR': { name: 'Threonine', type: 'Polar', symbol: 'T', hydrophobic: false },
-    'TRP': { name: 'Tryptophan', type: 'Nonpolar', symbol: 'W', hydrophobic: true },
-    'TYR': { name: 'Tyrosine', type: 'Polar', symbol: 'Y', hydrophobic: false },
-    'VAL': { name: 'Valine', type: 'Nonpolar', symbol: 'V', hydrophobic: true }
+    'ALA': { name: 'Alanine', type: 'Nonpolar', symbol: 'A', hydrophobic: true, color: '#C8C8C8' },
+    'ARG': { name: 'Arginine', type: 'Positively charged', symbol: 'R', hydrophobic: false, color: '#145AFF' },
+    'ASN': { name: 'Asparagine', type: 'Polar', symbol: 'N', hydrophobic: false, color: '#00DCDC' },
+    'ASP': { name: 'Aspartic acid', type: 'Negatively charged', symbol: 'D', hydrophobic: false, color: '#E60A0A' },
+    'CYS': { name: 'Cysteine', type: 'Polar', symbol: 'C', hydrophobic: false, color: '#E6E600' },
+    'GLN': { name: 'Glutamine', type: 'Polar', symbol: 'Q', hydrophobic: false, color: '#00DCDC' },
+    'GLU': { name: 'Glutamic acid', type: 'Negatively charged', symbol: 'E', hydrophobic: false, color: '#E60A0A' },
+    'GLY': { name: 'Glycine', type: 'Nonpolar', symbol: 'G', hydrophobic: true, color: '#EBEBEB' },
+    'HIS': { name: 'Histidine', type: 'Positively charged', symbol: 'H', hydrophobic: false, color: '#8282D2' },
+    'ILE': { name: 'Isoleucine', type: 'Nonpolar', symbol: 'I', hydrophobic: true, color: '#0F820F' },
+    'LEU': { name: 'Leucine', type: 'Nonpolar', symbol: 'L', hydrophobic: true, color: '#0F820F' },
+    'LYS': { name: 'Lysine', type: 'Positively charged', symbol: 'K', hydrophobic: false, color: '#145AFF' },
+    'MET': { name: 'Methionine', type: 'Nonpolar', symbol: 'M', hydrophobic: true, color: '#E6E600' },
+    'PHE': { name: 'Phenylalanine', type: 'Nonpolar', symbol: 'F', hydrophobic: true, color: '#3232AA' },
+    'PRO': { name: 'Proline', type: 'Nonpolar', symbol: 'P', hydrophobic: true, color: '#DC9682' },
+    'SER': { name: 'Serine', type: 'Polar', symbol: 'S', hydrophobic: false, color: '#FA9600' },
+    'THR': { name: 'Threonine', type: 'Polar', symbol: 'T', hydrophobic: false, color: '#FA9600' },
+    'TRP': { name: 'Tryptophan', type: 'Nonpolar', symbol: 'W', hydrophobic: true, color: '#B45AB4' },
+    'TYR': { name: 'Tyrosine', type: 'Polar', symbol: 'Y', hydrophobic: false, color: '#3232AA' },
+    'VAL': { name: 'Valine', type: 'Nonpolar', symbol: 'V', hydrophobic: true, color: '#0F820F' }
   };
 
   useEffect(() => {
@@ -90,11 +87,11 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
       setIsLoading(true);
       setError(null);
 
-      // Create 3Dmol viewer
+      // Create 3Dmol viewer with optimized settings
       const config = { 
         backgroundColor: 'white',
         antialias: true,
-        quality: 'high'
+        quality: 'medium' // Changed from 'high' to 'medium' for better performance
       };
       const newViewer = window.$3Dmol.createViewer(viewerRef.current, config);
       
@@ -123,7 +120,7 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
       // Set initial style
       newViewer.setStyle({}, { cartoon: { color: 'spectrum' } });
       
-      // Add hover interactions
+      // Add optimized hover interactions
       setupHoverInteractions(newViewer);
       
       newViewer.zoomTo();
@@ -139,67 +136,37 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
   };
 
   const setupHoverInteractions = (viewerInstance: any) => {
-    // Add hover callback for atoms
+    let hoverTimeout: NodeJS.Timeout;
+    
+    // Optimized hover callback with debouncing
     viewerInstance.setHoverable({}, true, (atom: any, viewer: any, event: any) => {
       if (atom) {
-        // Get mouse position for tooltip
-        const rect = viewerRef.current?.getBoundingClientRect();
-        if (rect) {
-          setTooltipPosition({
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
-          });
+        // Clear any existing timeout
+        if (hoverTimeout) {
+          clearTimeout(hoverTimeout);
         }
-
-        // Clear previous highlights
-        clearHighlights(viewer);
-
-        // Highlight the entire residue
-        const residueAtoms = viewer.selectedAtoms({
-          resi: atom.resi,
-          chain: atom.chain
-        });
-
-        // Add yellow highlight to the residue
-        viewer.addStyle(
-          { resi: atom.resi, chain: atom.chain },
-          { stick: { color: 'yellow', radius: 0.3 } }
-        );
-
-        setHighlightedAtoms(residueAtoms);
-
-        // Set residue info for tooltip
-        setHoveredResidue({
-          resn: atom.resn,
-          resi: atom.resi,
-          chain: atom.chain,
-          atom: atom.elem,
-          position: { x: atom.x, y: atom.y, z: atom.z }
-        });
-
-        setShowTooltip(true);
-        viewer.render();
+        
+        // Debounce the hover effect to improve performance
+        hoverTimeout = setTimeout(() => {
+          setHoveredResidue({
+            resn: atom.resn,
+            resi: atom.resi,
+            chain: atom.chain,
+            atom: atom.elem,
+            position: { x: atom.x, y: atom.y, z: atom.z }
+          });
+        }, 50); // 50ms debounce
       }
     }, (atom: any, viewer: any) => {
-      // Mouse out - clear highlights
-      if (highlightedAtoms.length > 0) {
-        clearHighlights(viewer);
-        setShowTooltip(false);
-        setHoveredResidue(null);
-        viewer.render();
+      // Mouse out - clear residue info
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
       }
+      
+      setTimeout(() => {
+        setHoveredResidue(null);
+      }, 100); // Small delay to prevent flickering
     });
-  };
-
-  const clearHighlights = (viewer: any) => {
-    if (hoveredResidue) {
-      // Remove highlight styles
-      viewer.removeStyle(
-        { resi: hoveredResidue.resi, chain: hoveredResidue.chain },
-        { stick: { color: 'yellow', radius: 0.3 } }
-      );
-    }
-    setHighlightedAtoms([]);
   };
 
   const fetchPDBData = async (url: string): Promise<string> => {
@@ -268,70 +235,6 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
     }
   };
 
-  // Custom tooltip component
-  const ResidueTooltip = () => {
-    if (!hoveredResidue || !showTooltip) return null;
-
-    const aaInfo = aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties];
-
-    return (
-      <div
-        className="absolute z-50 bg-popover border border-border rounded-lg p-3 shadow-lg pointer-events-none max-w-xs"
-        style={{
-          left: tooltipPosition.x + 10,
-          top: tooltipPosition.y - 10,
-          transform: 'translateY(-100%)'
-        }}
-      >
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs">
-              {hoveredResidue.chain}:{hoveredResidue.resi}
-            </Badge>
-            <Badge 
-              variant={aaInfo?.hydrophobic ? "default" : "outline"} 
-              className="text-xs"
-            >
-              {aaInfo?.symbol || hoveredResidue.resn}
-            </Badge>
-          </div>
-          
-          {aaInfo && (
-            <>
-              <div>
-                <p className="font-medium text-sm">{aaInfo.name}</p>
-                <p className="text-xs text-muted-foreground">{aaInfo.type}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground">Chain:</span> {hoveredResidue.chain}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Position:</span> {hoveredResidue.resi}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Residue:</span> {hoveredResidue.resn}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Type:</span> {aaInfo.hydrophobic ? 'Hydrophobic' : 'Hydrophilic'}
-                </div>
-              </div>
-              
-              <div className="text-xs">
-                <span className="text-muted-foreground">Coordinates:</span>
-                <br />
-                X: {hoveredResidue.position.x.toFixed(2)}, 
-                Y: {hoveredResidue.position.y.toFixed(2)}, 
-                Z: {hoveredResidue.position.z.toFixed(2)}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   if (error) {
     return (
       <Card>
@@ -355,106 +258,188 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
 
   return (
     <TooltipProvider>
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              3D Protein Structure
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Hover over the structure to see amino acid details</p>
-                </TooltipContent>
-              </Tooltip>
-            </CardTitle>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="text-xs">
-                AlphaFold: {alphafoldId}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                UniProt: {uniprotId}
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Controls */}
-          <div className="flex flex-wrap gap-3 items-center">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Style:</label>
-              <Select value={style} onValueChange={updateStyle}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cartoon">Cartoon</SelectItem>
-                  <SelectItem value="stick">Stick</SelectItem>
-                  <SelectItem value="sphere">Sphere</SelectItem>
-                  <SelectItem value="line">Line</SelectItem>
-                  <SelectItem value="surface">Surface</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Color:</label>
-              <Select value={colorScheme} onValueChange={updateColorScheme}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="spectrum">Spectrum</SelectItem>
-                  <SelectItem value="chain">By Chain</SelectItem>
-                  <SelectItem value="residue">By Residue</SelectItem>
-                  <SelectItem value="white">White</SelectItem>
-                  <SelectItem value="grey">Grey</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex gap-1">
-              <Button variant="outline" size="sm" onClick={resetView}>
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={downloadImage}>
-                <Download className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" onClick={toggleFullscreen}>
-                <Maximize className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* 3D Viewer */}
-          <div className="relative">
-            <div 
-              ref={viewerRef} 
-              className="w-full h-96 bg-white rounded-lg border border-border overflow-hidden cursor-pointer"
-              style={{ minHeight: '400px' }}
-            />
-            
-            {isLoading && (
-              <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg">
-                <div className="text-center">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Loading 3D structure...</p>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main 3D Viewer */}
+        <div className="lg:col-span-3">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2">
+                  3D Protein Structure
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Hover over the structure to see amino acid details in the side panel</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    AlphaFold: {alphafoldId}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    UniProt: {uniprotId}
+                  </Badge>
                 </div>
               </div>
-            )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Controls */}
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Style:</label>
+                  <Select value={style} onValueChange={updateStyle}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cartoon">Cartoon</SelectItem>
+                      <SelectItem value="stick">Stick</SelectItem>
+                      <SelectItem value="sphere">Sphere</SelectItem>
+                      <SelectItem value="line">Line</SelectItem>
+                      <SelectItem value="surface">Surface</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Color:</label>
+                  <Select value={colorScheme} onValueChange={updateColorScheme}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="spectrum">Spectrum</SelectItem>
+                      <SelectItem value="chain">By Chain</SelectItem>
+                      <SelectItem value="residue">By Residue</SelectItem>
+                      <SelectItem value="white">White</SelectItem>
+                      <SelectItem value="grey">Grey</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" onClick={resetView}>
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={downloadImage}>
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={toggleFullscreen}>
+                    <Maximize className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
 
-            {/* Custom Tooltip */}
-            <ResidueTooltip />
-          </div>
+              {/* 3D Viewer */}
+              <div className="relative">
+                <div 
+                  ref={viewerRef} 
+                  className="w-full h-96 bg-white rounded-lg border border-border overflow-hidden cursor-pointer"
+                  style={{ minHeight: '400px' }}
+                />
+                
+                {isLoading && (
+                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-lg">
+                    <div className="text-center">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Loading 3D structure...</p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-          {/* Instructions */}
-          <div className="text-xs text-muted-foreground bg-muted p-3 rounded space-y-1">
-            <div><strong>Navigation:</strong> Left click & drag to rotate • Right click & drag to zoom • Middle click & drag to pan</div>
-            <div><strong>Interaction:</strong> Hover over any part of the protein to see amino acid residue details</div>
-          </div>
-        </CardContent>
-      </Card>
+              {/* Instructions */}
+              <div className="text-xs text-muted-foreground bg-muted p-3 rounded space-y-1">
+                <div><strong>Navigation:</strong> Left click & drag to rotate • Right click & drag to zoom • Middle click & drag to pan</div>
+                <div><strong>Interaction:</strong> Hover over any part of the protein to see amino acid residue details in the side panel</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Side Panel for Residue Details */}
+        <div className="lg:col-span-1">
+          <Card className="h-fit sticky top-4">
+            <CardHeader>
+              <CardTitle className="text-lg">Residue Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {hoveredResidue ? (
+                <div className="space-y-4">
+                  {/* Header with badges */}
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="text-sm">
+                      {hoveredResidue.chain}:{hoveredResidue.resi}
+                    </Badge>
+                    <Badge 
+                      variant={aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties]?.hydrophobic ? "default" : "outline"} 
+                      className="text-sm"
+                    >
+                      {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties]?.symbol || hoveredResidue.resn}
+                    </Badge>
+                  </div>
+                  
+                  {/* Amino acid info */}
+                  {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties] && (
+                    <div className="space-y-3">
+                      <div>
+                        <h4 className="font-semibold text-base">
+                          {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties].name}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties].type}
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Chain:</span>
+                          <span className="font-medium">{hoveredResidue.chain}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Position:</span>
+                          <span className="font-medium">{hoveredResidue.resi}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Residue:</span>
+                          <span className="font-medium">{hoveredResidue.resn}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Property:</span>
+                          <span className="font-medium">
+                            {aminoAcidProperties[hoveredResidue.resn as keyof typeof aminoAcidProperties].hydrophobic ? 'Hydrophobic' : 'Hydrophilic'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs space-y-1 pt-2 border-t">
+                        <div className="font-medium text-muted-foreground">3D Coordinates:</div>
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div>X: {hoveredResidue.position.x.toFixed(2)}</div>
+                          <div>Y: {hoveredResidue.position.y.toFixed(2)}</div>
+                          <div>Z: {hoveredResidue.position.z.toFixed(2)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-muted-foreground/20 rounded-full"></div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Hover over the protein structure to see residue details
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </TooltipProvider>
   );
 };
