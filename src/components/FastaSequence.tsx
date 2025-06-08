@@ -58,7 +58,7 @@ const FastaSequence = ({ hsnId }: FastaSequenceProps) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Dna className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium">FASTA Sequence</span>
+            <span className="text-sm font-medium">Amino acid sequence</span>
             <span className="text-xs text-muted-foreground">
               ({sequence.length} AA)
             </span>
@@ -99,7 +99,7 @@ const FastaSequence = ({ hsnId }: FastaSequenceProps) => {
         </div>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
-          <span>First 100 AA • Click to copy full sequence</span>
+          <span>First 100 AA • Click to copy full FASTA format</span>
           <span>ID: {fastaData.uniprot_id}</span>
         </div>
       </CardContent>
