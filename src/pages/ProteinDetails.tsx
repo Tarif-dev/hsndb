@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ExternalLink, Download, Share2, Copy } from "lucide-react";
@@ -8,6 +9,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ProteinViewer3D from "@/components/ProteinViewer3D";
 import NetworkVisualization from "@/components/NetworkVisualization";
+import FastaSequence from "@/components/FastaSequence";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +59,7 @@ const ProteinDetails = () => {
       });
     }
   };
+
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     toast({
@@ -163,7 +166,10 @@ const ProteinDetails = () => {
                   </Button>
                 </div>
 
-                <div className="flex flex-wrap gap-3 mb-6">
+                {/* Add FASTA sequence below gene name */}
+                <FastaSequence hsnId={protein.hsn_id} />
+
+                <div className="flex flex-wrap gap-3 mb-6 mt-4">
                   <Badge
                     variant={
                       protein.cancer_causing ? "destructive" : "secondary"
