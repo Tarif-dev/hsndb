@@ -1,7 +1,13 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Download, Share2, Copy } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  Download,
+  Share2,
+  Copy,
+  ChevronDown,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProteinData } from "@/hooks/useProteinData";
@@ -16,6 +22,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const ProteinDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -85,7 +97,6 @@ const ProteinDetails = () => {
     link.click();
     URL.revokeObjectURL(url);
   };
-
   const handleFullNetwork = () => {
     if (!protein?.uniprot_id) return;
 
@@ -94,6 +105,72 @@ const ProteinDetails = () => {
       `https://string-db.org/network/${protein.uniprot_id}`,
       "_blank"
     );
+  };
+  const handleExportFasta = async () => {
+    if (!protein?.hsn_id) return;
+
+    try {
+      // Fetch FASTA data from the formats table
+      const { data: fastaData, error } = await supabase
+        .from("formats")
+        .select("fasta")
+        .eq("hsn_id", protein.hsn_id)
+        .single();
+
+      if (error) {
+        toast({
+          title: "Export Failed",
+          description: "Could not fetch FASTA sequence",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!fastaData?.fasta) {
+        toast({
+          title: "No Data",
+          description: "FASTA sequence not available for this protein",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create FASTA file content with proper headers
+      const fastaContent = fastaData.fasta;
+      const fileName = `${protein.gene_name}_${protein.hsn_id}.fasta`;
+
+      // Create blob URL for the FASTA file
+      const fastaBlob = new Blob([fastaContent], { type: "text/plain" });
+      const url = URL.createObjectURL(fastaBlob);
+
+      // Open in new tab first (redirect)
+      const newWindow = window.open(url, "_blank");
+
+      // Download the file
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the URL after a short delay to ensure download completes
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+
+      toast({
+        title: "Export Successful",
+        description: `FASTA sequence downloaded as ${fileName}`,
+      });
+    } catch (error) {
+      console.error("Error exporting FASTA:", error);
+      toast({
+        title: "Export Failed",
+        description: "An error occurred while exporting the FASTA sequence",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -191,17 +268,39 @@ const ProteinDetails = () => {
                     </Badge>
                   )}
                 </div>
-              </div>
-
+              </div>{" "}
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleShare}>
                   <Share2 className="h-4 w-4 mr-2" />
                   Share
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                      <ChevronDown className="h-4 w-4 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={handleExportFasta}>
+                      <Download className="h-4 w-4 mr-2" />
+                      FASTA (Canonical)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled>
+                      <Download className="h-4 w-4 mr-2" />
+                      JSON (Coming Soon)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled>
+                      <Download className="h-4 w-4 mr-2" />
+                      CSV (Coming Soon)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled>
+                      <Download className="h-4 w-4 mr-2" />
+                      XML (Coming Soon)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>

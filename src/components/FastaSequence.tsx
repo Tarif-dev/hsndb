@@ -1,7 +1,7 @@
-
 import React from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Dna } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useFasta } from "@/hooks/useFasta";
 
@@ -25,12 +25,17 @@ const FastaSequence = ({ hsnId }: FastaSequenceProps) => {
       setTimeout(() => setCopied(false), 2000);
     }
   };
-
   if (isLoading) {
     return (
-      <div className="mt-2">
-        <div className="animate-pulse bg-muted h-6 w-48 rounded"></div>
-      </div>
+      <Card className="mt-3">
+        <CardContent className="pt-4 pb-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Dna className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium">FASTA Sequence</span>
+          </div>
+          <div className="animate-pulse bg-muted h-3 w-full rounded"></div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -39,41 +44,66 @@ const FastaSequence = ({ hsnId }: FastaSequenceProps) => {
   }
 
   // Extract sequence from FASTA format (remove header line)
-  const fastaLines = fastaData.fasta.split('\n');
-  const sequence = fastaLines.slice(1).join('').replace(/\s/g, '');
-  const displaySequence = sequence.substring(0, 25);
+  const fastaLines = fastaData.fasta.split("\n");
+  const sequence = fastaLines.slice(1).join("").replace(/\s/g, "");
+  const displaySequence = sequence.substring(0, 100);
 
+  // Format sequence in groups of 10 for better readability
+  const formatSequence = (seq: string) => {
+    return seq.match(/.{1,10}/g)?.join(" ") || seq;
+  };
   return (
-    <div className="mt-2">
-      <label className="text-sm font-medium text-muted-foreground">
-        FASTA Sequence (first 25 AA)
-      </label>
-      <div className="flex items-center gap-2 mt-1">
-        <code 
-          className="text-sm font-mono bg-muted px-2 py-1 rounded cursor-pointer hover:bg-muted/80 transition-colors flex-1"
+    <Card className="mt-3 border-l-4 border-l-blue-500">
+      <CardContent className="pt-4 pb-3">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Dna className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium">FASTA Sequence</span>
+            <span className="text-xs text-muted-foreground">
+              ({sequence.length} AA)
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopy}
+            className="h-7 px-2 text-xs"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3 w-3 text-green-600 mr-1" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3 mr-1" />
+                Copy
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div
+          className="bg-slate-50 dark:bg-slate-900 p-3 rounded border cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           onClick={handleCopy}
           title="Click to copy full FASTA sequence"
         >
-          {displaySequence}
-          {sequence.length > 25 && "..."}
-        </code>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCopy}
-          className="flex items-center gap-1 px-2"
-        >
-          {copied ? (
-            <Check className="h-3 w-3 text-green-600" />
-          ) : (
-            <Copy className="h-3 w-3" />
-          )}
-        </Button>
-      </div>
-      <p className="text-xs text-muted-foreground mt-1">
-        Click to copy full sequence ({sequence.length} amino acids)
-      </p>
-    </div>
+          <code className="text-xs font-mono leading-relaxed block break-all">
+            {formatSequence(displaySequence)}
+            {sequence.length > 100 && (
+              <span className="text-muted-foreground ml-1">
+                ...+{sequence.length - 100}
+              </span>
+            )}
+          </code>
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+          <span>First 100 AA • Click to copy full sequence</span>
+          <span>ID: {fastaData.uniprot_id}</span>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
