@@ -1,0 +1,24 @@
+{
+  "version": "1.2",
+  "dbname": "hsndb",
+  "dbtype": "Protein",
+  "db-version": 5,
+  "description": "formatted.fasta",
+  "number-of-letters": 3149545,
+  "number-of-sequences": 4533,
+  "last-updated": "2025-06-10T15:46:00",
+  "number-of-volumes": 1,
+  "bytes-total": 4356609,
+  "bytes-to-cache": 3190439,
+  "files": [
+    "hsndb.pdb",
+    "hsndb.phr",
+    "hsndb.pin",
+    "hsndb.pog",
+    "hsndb.pos",
+    "hsndb.pot",
+    "hsndb.psq",
+    "hsndb.ptf",
+    "hsndb.pto"
+  ]
+}
