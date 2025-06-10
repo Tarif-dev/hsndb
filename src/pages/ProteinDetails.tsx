@@ -21,6 +21,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -33,6 +40,8 @@ const ProteinDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [fastaModalOpen, setFastaModalOpen] = React.useState(false);
+  const [fastaData, setFastaData] = React.useState<string | null>(null);
 
   const {
     data: protein,
@@ -106,7 +115,8 @@ const ProteinDetails = () => {
       "_blank"
     );
   };
-  const handleExportFasta = async () => {
+
+  const handleViewFastaModal = async () => {
     if (!protein?.hsn_id) return;
 
     try {
@@ -120,7 +130,7 @@ const ProteinDetails = () => {
       if (error) {
         console.error("Error fetching FASTA data:", error);
         toast({
-          title: "Export Failed",
+          title: "Failed to Load",
           description: "Could not fetch FASTA sequence",
           variant: "destructive",
         });
@@ -136,39 +146,61 @@ const ProteinDetails = () => {
         return;
       }
 
-      // Create FASTA file content
-      const fastaContent = fastaData.fasta;
-      const fileName = `${protein.gene_name || protein.protein_name}_${protein.hsn_id}.fasta`;
-
-      // Create blob and download
-      const fastaBlob = new Blob([fastaContent], { type: "text/plain" });
-      const url = URL.createObjectURL(fastaBlob);
-
-      // Create download link
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Clean up
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 1000);
-
-      toast({
-        title: "Export Successful",
-        description: `FASTA sequence downloaded as ${fileName}`,
-      });
+      setFastaData(fastaData.fasta);
+      setFastaModalOpen(true);
     } catch (error) {
-      console.error("Error exporting FASTA:", error);
+      console.error("Error loading FASTA:", error);
       toast({
-        title: "Export Failed",
-        description: "An error occurred while exporting the FASTA sequence",
+        title: "Failed to Load",
+        description: "An error occurred while loading the FASTA sequence",
         variant: "destructive",
       });
     }
+  };
+
+  const handleCopyFasta = () => {
+    if (fastaData) {
+      navigator.clipboard.writeText(fastaData);
+      toast({
+        title: "Copied!",
+        description: "FASTA sequence copied to clipboard",
+      });
+    }
+  };
+
+  const handleDownloadFromModal = () => {
+    if (!fastaData || !protein) return;
+
+    const fileName = `${protein.gene_name || protein.protein_name}_${
+      protein.hsn_id
+    }.fasta`;
+
+    const blob = new Blob([fastaData], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Downloaded!",
+      description: `FASTA sequence saved as ${fileName}`,
+    });
+  };
+
+  const formatFastaForDisplay = (fastaText: string) => {
+    const lines = fastaText.split("\n");
+    const header = lines[0];
+    const sequence = lines.slice(1).join("").replace(/\s/g, "");
+
+    // Format sequence in lines of 80 characters (standard FASTA format)
+    const formattedSequence =
+      sequence.match(/.{1,80}/g)?.join("\n") || sequence;
+
+    return `${header}\n${formattedSequence}`;
   };
 
   if (isLoading) {
@@ -279,9 +311,9 @@ const ProteinDetails = () => {
                       Export
                       <ChevronDown className="h-4 w-4 ml-1" />
                     </Button>
-                  </DropdownMenuTrigger>
+                  </DropdownMenuTrigger>{" "}
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={handleExportFasta}>
+                    <DropdownMenuItem onClick={handleViewFastaModal}>
                       <Download className="h-4 w-4 mr-2" />
                       FASTA (Canonical)
                     </DropdownMenuItem>
@@ -1024,14 +1056,60 @@ const ProteinDetails = () => {
                 </Card>
               </div>
             </TabsContent>
-          </Tabs>
+          </Tabs>{" "}
         </div>
       </div>
       <Footer />
+
+      {/* FASTA Export Modal */}
+      <Dialog open={fastaModalOpen} onOpenChange={setFastaModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>FASTA Sequence Export</DialogTitle>
+            <DialogDescription>
+              Complete FASTA sequence for {protein?.protein_name} (HSN ID:{" "}
+              {protein?.hsn_id})
+            </DialogDescription>
+          </DialogHeader>
+
+          {fastaData && (
+            <div className="space-y-4">
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCopyFasta}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy to Clipboard
+                </Button>
+                <Button
+                  onClick={handleDownloadFromModal}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download File
+                </Button>
+              </div>
+
+              {/* FASTA display */}
+              <div className="border rounded-lg">
+                <div className="bg-muted p-2 border-b">
+                  <span className="text-sm font-medium">FASTA Format</span>
+                </div>
+                <div className="p-4 max-h-96 overflow-y-auto">
+                  <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+                    {formatFastaForDisplay(fastaData)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default ProteinDetails;
-
-}

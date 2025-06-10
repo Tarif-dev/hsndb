@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Copy, Check, Dna } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,18 +43,16 @@ const FastaSequence = ({ hsnId }: FastaSequenceProps) => {
   if (!fastaData?.fasta) {
     return null;
   }
-
   // Extract sequence from FASTA format (remove header line)
   const fastaLines = fastaData.fasta.split("\n");
   const headerLine = fastaLines[0] || "";
   const sequence = fastaLines.slice(1).join("").replace(/\s/g, "");
-  const displaySequence = sequence.substring(0, 25);
+  const displaySequence = sequence.substring(0, 100);
 
   // Format sequence in groups of 10 for better readability
   const formatSequence = (seq: string) => {
     return seq.match(/.{1,10}/g)?.join(" ") || seq;
   };
-
   return (
     <Card className="mt-3 border-l-4 border-l-blue-500">
       <CardContent className="pt-4 pb-3">
@@ -87,23 +84,19 @@ const FastaSequence = ({ hsnId }: FastaSequenceProps) => {
           </Button>
         </div>
 
-        <div
-          className="bg-slate-50 dark:bg-slate-900 p-3 rounded border cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-          onClick={handleCopy}
-          title="Click to copy full FASTA sequence"
-        >
+        <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded border">
           <code className="text-xs font-mono leading-relaxed block break-all">
             {formatSequence(displaySequence)}
-            {sequence.length > 25 && (
+            {sequence.length > 100 && (
               <span className="text-muted-foreground ml-1">
-                ...+{sequence.length - 25}
+                ...+{sequence.length - 100}
               </span>
             )}
           </code>
         </div>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
-          <span>First 25 AA • Click to copy full FASTA format</span>
+          <span>First 100 AA • Use Export menu for full FASTA</span>
           <span>HSN ID: {fastaData.hsn_id}</span>
         </div>
       </CardContent>
