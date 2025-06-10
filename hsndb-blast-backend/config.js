@@ -8,7 +8,7 @@ module.exports = {
   TEMP_DIR: path.join(__dirname, "temp"),
   
   // Database Configuration
-  FASTA_FILE: path.join(__dirname, "..", "sequences.fasta"), // Root directory FASTA file
+  FASTA_FILE: path.join(__dirname, "..", "sequences .fasta"), // Fixed filename with space
   
   // Server Configuration
   PORT: process.env.PORT || 3001,
