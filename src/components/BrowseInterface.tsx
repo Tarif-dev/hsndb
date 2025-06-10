@@ -51,7 +51,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
     useState(initialQuery);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [sortBy, setSortBy] = useState("relevance");
+  const [sortBy, setSortBy] = useState("hsn_id");
   const [filters, setFilters] = useState({
     cancerSites: [] as string[],
     totalSites: [] as string[],
@@ -274,7 +274,6 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                       </div>
                     </DropdownMenuContent>
                   </DropdownMenu>
-
                   {/* Sort by dropdown */}
                   <div className="flex items-center space-x-2">
                     <label className="text-sm text-gray-600 whitespace-nowrap">
@@ -291,7 +290,6 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                       <option value="total_sites">Total Sites</option>
                     </select>
                   </div>
-
                   {/* Show dropdown */}
                   <div className="flex items-center space-x-2">
                     <label className="text-sm text-gray-600 whitespace-nowrap">
@@ -307,15 +305,11 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                       <option value={50}>50</option>
                       <option value={100}>100</option>
                     </select>
-                  </div>
+                  </div>{" "}
                 </div>
 
-                {/* Right side: Export and Analyze buttons */}
+                {/* Right side: Analyze button */}
                 <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
                   <Button variant="outline" size="sm">
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Analyze
