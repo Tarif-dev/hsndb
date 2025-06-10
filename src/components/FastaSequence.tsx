@@ -103,7 +103,7 @@ const FastaSequence = ({ hsnId }: FastaSequenceProps) => {
 
         <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
           <span>First 25 AA • Click to copy full FASTA format</span>
-          <span>ID: {fastaData.uniprot_id}</span>
+          <span>HSN ID: {fastaData.hsn_id}</span>
         </div>
       </CardContent>
     </Card>
