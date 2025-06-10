@@ -12,66 +12,179 @@ import { useToast } from "@/hooks/use-toast";
 export const useBlastSearch = () => {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [shouldPoll, setShouldPoll] = useState(false);
+  const [serverStatus, setServerStatus] = useState<'unknown' | 'online' | 'offline'>('unknown');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Check server health on mount
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const isHealthy = await BlastAPI.checkServerHealth();
+        setServerStatus(isHealthy ? 'online' : 'offline');
+        
+        if (!isHealthy) {
+          toast({
+            title: "Server Offline",
+            description: "BLAST server is not responding. Please ensure it's running on port 3001.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        setServerStatus('offline');
+        console.error("Health check failed:", error);
+      }
+    };
+
+    checkHealth();
+  }, [toast]);
 
   // Submit BLAST search mutation
   const submitMutation = useMutation({
     mutationFn: async (params: BlastParameters) => {
+      // Validate sequence
       const validation = validateSequence(params.sequence);
       if (!validation.valid) {
         throw new Error(validation.message);
       }
+
+      // Check server status first
+      const isHealthy = await BlastAPI.checkServerHealth();
+      if (!isHealthy) {
+        throw new Error("BLAST server is not responding. Please ensure it's running on port 3001.");
+      }
+
       return BlastAPI.submitBlastSearch(params);
     },
     onSuccess: (jobId) => {
       setCurrentJobId(jobId);
       setShouldPoll(true);
+      setServerStatus('online');
       toast({
         title: "BLAST Search Submitted",
-        description: `Job ${jobId} has been queued for processing.`,
+        description: `Job ${jobId.substring(0, 8)}... has been queued for processing.`,
       });
     },
     onError: (error: Error) => {
+      console.error("BLAST submission failed:", error);
+      if (error.message.includes("Cannot connect")) {
+        setServerStatus('offline');
+      }
       toast({
         title: "Search Failed",
         description: error.message,
         variant: "destructive",
       });
     },
-  }); // Poll job status
-  const { data: jobStatus, isLoading: isPolling } = useQuery({
+  });
+
+  // Poll job status with error handling
+  const { data: jobStatus, isLoading: isPolling, error: pollingError } = useQuery({
     queryKey: ["blast-job-status", currentJobId],
-    queryFn: () => (currentJobId ? BlastAPI.getJobStatus(currentJobId) : null),
+    queryFn: async () => {
+      if (!currentJobId) return null;
+      
+      try {
+        const status = await BlastAPI.getJobStatus(currentJobId);
+        setServerStatus('online');
+        return status;
+      } catch (error) {
+        console.error("Polling error:", error);
+        if (error instanceof Error && error.message.includes("Cannot connect")) {
+          setServerStatus('offline');
+        }
+        throw error;
+      }
+    },
     enabled: !!currentJobId && shouldPoll,
     refetchInterval: shouldPoll ? 2000 : false,
     refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      // Stop retrying after 3 failures or if it's a 404 (job not found)
+      if (failureCount >= 3) return false;
+      if (error instanceof Error && error.message.includes("Job not found")) return false;
+      return true;
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Stop polling when job is complete
+  // Stop polling when job is complete or failed
   useEffect(() => {
-    if (
-      jobStatus &&
-      (jobStatus.status === "completed" || jobStatus.status === "failed")
-    ) {
-      setShouldPoll(false);
+    if (jobStatus) {
+      if (jobStatus.status === "completed") {
+        setShouldPoll(false);
+        toast({
+          title: "BLAST Search Completed",
+          description: `Found ${jobStatus.results?.totalHits || 0} matches.`,
+        });
+      } else if (jobStatus.status === "failed") {
+        setShouldPoll(false);
+        toast({
+          title: "BLAST Search Failed",
+          description: jobStatus.error || "An unknown error occurred.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [jobStatus]);
+  }, [jobStatus, toast]);
 
-  // Get results query
-  const { data: results, isLoading: isLoadingResults } = useQuery({
+  // Handle polling errors
+  useEffect(() => {
+    if (pollingError) {
+      console.error("Polling error:", pollingError);
+      // Don't show toast for every polling error to avoid spam
+      if (pollingError instanceof Error && pollingError.message.includes("Job not found")) {
+        setShouldPoll(false);
+        toast({
+          title: "Job Not Found",
+          description: "The BLAST job may have expired or been cleaned up.",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [pollingError, toast]);
+
+  // Get results query with better error handling
+  const { data: results, isLoading: isLoadingResults, error: resultsError } = useQuery({
     queryKey: ["blast-results", currentJobId],
-    queryFn: () => (currentJobId ? BlastAPI.getResults(currentJobId) : null),
+    queryFn: async () => {
+      if (!currentJobId) return null;
+      
+      try {
+        const results = await BlastAPI.getResults(currentJobId);
+        setServerStatus('online');
+        return results;
+      } catch (error) {
+        console.error("Results error:", error);
+        if (error instanceof Error && error.message.includes("Cannot connect")) {
+          setServerStatus('offline');
+        }
+        throw error;
+      }
+    },
     enabled: jobStatus?.status === "completed",
+    retry: (failureCount, error) => {
+      if (failureCount >= 3) return false;
+      if (error instanceof Error && error.message.includes("not found")) return false;
+      return true;
+    },
   });
 
   const submitBlastSearch = useCallback(
     (params: BlastParameters) => {
+      console.log("Submitting BLAST search with parameters:", {
+        algorithm: params.algorithm,
+        evalue: params.evalue,
+        maxTargetSeqs: params.maxTargetSeqs,
+        sequenceLength: params.sequence.length
+      });
       submitMutation.mutate(params);
     },
     [submitMutation]
   );
+
   const clearResults = useCallback(() => {
+    console.log("Clearing BLAST results");
     setCurrentJobId(null);
     setShouldPoll(false);
     queryClient.removeQueries({ queryKey: ["blast-job-status"] });
@@ -88,6 +201,7 @@ export const useBlastSearch = () => {
     isPolling,
     isLoadingResults,
     isLoading: submitMutation.isPending || isPolling || isLoadingResults,
+    serverStatus,
 
     // Data
     jobId: currentJobId,
@@ -95,16 +209,15 @@ export const useBlastSearch = () => {
     results,
 
     // Error handling
-    error:
-      submitMutation.error ||
-      (jobStatus?.status === "failed" ? jobStatus.error : null),
+    error: submitMutation.error || pollingError || resultsError ||
+      (jobStatus?.status === "failed" ? new Error(jobStatus.error) : null),
 
     // Computed states
-    isSearching:
-      jobStatus?.status === "running" || jobStatus?.status === "pending",
+    isSearching: jobStatus?.status === "running" || jobStatus?.status === "pending",
     isCompleted: jobStatus?.status === "completed",
     isFailed: jobStatus?.status === "failed",
     progress: jobStatus?.progress || 0,
+    estimatedTimeRemaining: jobStatus?.estimatedTimeRemaining,
   };
 };
 

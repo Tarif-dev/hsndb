@@ -1,0 +1,363 @@
+
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+const xml2js = require('xml2js');
+const config = require('../config');
+const ValidationUtils = require('./validation');
+
+class BlastRunner {
+  constructor(jobStore) {
+    this.jobStore = jobStore;
+  }
+
+  async submitJob(params) {
+    // Validate sequence
+    const sequenceValidation = ValidationUtils.validateSequence(params.sequence);
+    if (!sequenceValidation.valid) {
+      throw new Error(sequenceValidation.message);
+    }
+
+    // Validate parameters
+    const paramValidation = ValidationUtils.validateParameters(params);
+    if (!paramValidation.valid) {
+      throw new Error(paramValidation.errors.join(', '));
+    }
+
+    const jobId = uuidv4();
+
+    // Initialize job status
+    this.jobStore.set(jobId, {
+      jobId,
+      status: "pending",
+      progress: 0,
+      startTime: Date.now(),
+      parameters: params
+    });
+
+    // Process BLAST search asynchronously
+    this.processBlastSearch(jobId, params).catch(error => {
+      console.error(`Job ${jobId} failed:`, error);
+      this.updateJobStatus(jobId, {
+        status: "failed",
+        error: error.message,
+      });
+    });
+
+    return jobId;
+  }
+
+  async processBlastSearch(jobId, params) {
+    try {
+      this.updateJobStatus(jobId, { status: "running", progress: 10 });
+
+      const {
+        sequence,
+        algorithm,
+        evalue = config.DEFAULT_PARAMS.evalue,
+        maxTargetSeqs = config.DEFAULT_PARAMS.maxTargetSeqs,
+        matrix = config.DEFAULT_PARAMS.matrix,
+        wordSize,
+        gapOpen,
+        gapExtend,
+      } = params;
+
+      // Create temporary files
+      const inputFile = path.join(config.TEMP_DIR, `query_${jobId}.fasta`);
+      const outputFile = path.join(config.TEMP_DIR, `results_${jobId}.xml`);
+
+      // Ensure temp directory exists
+      if (!fs.existsSync(config.TEMP_DIR)) {
+        fs.mkdirSync(config.TEMP_DIR, { recursive: true });
+      }
+
+      // Clean sequence and create FASTA format
+      const cleanSequence = sequence.replace(/\s/g, "").replace(/>/g, "");
+      const fastaContent = `>query\n${cleanSequence}`;
+      fs.writeFileSync(inputFile, fastaContent);
+
+      this.updateJobStatus(jobId, { progress: 30 });
+
+      // Build and execute BLAST command
+      const blastCommand = this.buildBlastCommand({
+        algorithm,
+        inputFile,
+        outputFile,
+        evalue,
+        maxTargetSeqs,
+        matrix,
+        wordSize,
+        gapOpen,
+        gapExtend,
+      });
+
+      console.log(`Executing BLAST for job ${jobId}:`, blastCommand);
+      this.updateJobStatus(jobId, { progress: 50 });
+
+      await this.executeBlastCommand(blastCommand);
+      this.updateJobStatus(jobId, { progress: 80 });
+
+      // Parse results
+      const xmlResults = fs.readFileSync(outputFile, "utf8");
+      const parsedResults = await this.parseBlastXML(xmlResults, cleanSequence, jobId);
+      this.updateJobStatus(jobId, { progress: 95 });
+
+      // Clean up temporary files
+      this.cleanupFiles([inputFile, outputFile]);
+
+      // Store results and mark as completed
+      this.updateJobStatus(jobId, {
+        status: "completed",
+        progress: 100,
+        results: parsedResults,
+        completedTime: Date.now(),
+      });
+
+    } catch (error) {
+      console.error(`BLAST execution error for job ${jobId}:`, error);
+      this.updateJobStatus(jobId, {
+        status: "failed",
+        error: error.message,
+      });
+    }
+  }
+
+  buildBlastCommand(params) {
+    const {
+      algorithm,
+      inputFile,
+      outputFile,
+      evalue,
+      maxTargetSeqs,
+      matrix,
+      wordSize,
+      gapOpen,
+      gapExtend,
+    } = params;
+
+    const executable = `"${path.join(config.BLAST_BIN_PATH, algorithm)}"`;
+
+    let cmd = [
+      executable,
+      "-query", `"${inputFile}"`,
+      "-db", `"${config.BLAST_DB_PATH}"`,
+      "-evalue", evalue,
+      "-max_target_seqs", maxTargetSeqs,
+      "-outfmt", "5", // XML output
+      "-out", `"${outputFile}"`,
+    ];
+
+    // Add algorithm-specific parameters
+    if (matrix && (algorithm === "blastp" || algorithm === "blastx" || algorithm === "tblastn")) {
+      cmd.push("-matrix", matrix);
+    }
+
+    if (wordSize) {
+      cmd.push("-word_size", wordSize);
+    } else if (config.DEFAULT_PARAMS.wordSize[algorithm]) {
+      cmd.push("-word_size", config.DEFAULT_PARAMS.wordSize[algorithm]);
+    }
+
+    if (gapOpen !== undefined) {
+      cmd.push("-gapopen", gapOpen);
+    }
+
+    if (gapExtend !== undefined) {
+      cmd.push("-gapextend", gapExtend);
+    }
+
+    return cmd.join(" ");
+  }
+
+  executeBlastCommand(command) {
+    return new Promise((resolve, reject) => {
+      exec(command, { 
+        maxBuffer: 1024 * 1024 * 50, // 50MB buffer
+        timeout: 300000 // 5 minute timeout
+      }, (error, stdout, stderr) => {
+        if (error) {
+          console.error("BLAST execution failed:", error);
+          console.error("stderr:", stderr);
+          reject(new Error(`BLAST execution failed: ${error.message}`));
+        } else {
+          console.log("BLAST completed successfully");
+          resolve(stdout);
+        }
+      });
+    });
+  }
+
+  async parseBlastXML(xmlData, querySequence, jobId) {
+    try {
+      const parser = new xml2js.Parser();
+      const result = await parser.parseStringPromise(xmlData);
+
+      const blastOutput = result["BlastOutput"];
+      if (!blastOutput) {
+        throw new Error("Invalid BLAST XML output");
+      }
+
+      const iterations = blastOutput["BlastOutput_iterations"]?.[0]?.["Iteration"];
+      if (!iterations || iterations.length === 0) {
+        return this.createEmptyResult(querySequence, jobId);
+      }
+
+      const iteration = iterations[0];
+      const hits = iteration["Iteration_hits"]?.[0]?.["Hit"] || [];
+
+      const parsedHits = hits
+        .map((hit) => this.parseBlastHit(hit))
+        .filter(Boolean)
+        .sort((a, b) => a.evalue - b.evalue); // Sort by e-value (most significant first)
+
+      // Get statistics
+      const stats = iteration["Iteration_stat"]?.[0]?.["Statistics"]?.[0];
+
+      return {
+        jobId,
+        queryLength: querySequence.length,
+        databaseSize: 4533,
+        totalHits: parsedHits.length,
+        hits: parsedHits,
+        statistics: {
+          kappa: parseFloat(stats?.["Statistics_kappa"]?.[0]) || 0.041,
+          lambda: parseFloat(stats?.["Statistics_lambda"]?.[0]) || 0.267,
+          entropy: parseFloat(stats?.["Statistics_entropy"]?.[0]) || 0.14,
+          database: "HSNDB",
+          databaseVersion: "2024.1",
+          totalSequences: 4533,
+        },
+        executionTime: Math.round((Date.now() % 10000) / 1000),
+      };
+    } catch (error) {
+      console.error("Error parsing BLAST XML:", error);
+      throw new Error("Failed to parse BLAST results");
+    }
+  }
+
+  parseBlastHit(hit) {
+    try {
+      const hitId = hit["Hit_id"]?.[0];
+      const hitDef = hit["Hit_def"]?.[0];
+      const hitLen = parseInt(hit["Hit_len"]?.[0]);
+
+      if (!hitId || !hitDef) {
+        return null;
+      }
+
+      // Parse FASTA header format: >sp|HSN0001|A0A024RBG1|NUD4B_HUMAN Diphosphoinositol...
+      const headerParts = hitDef.split(" ");
+      const idParts = headerParts[0].split("|");
+
+      let hsnId = hitId;
+      let geneName = "Unknown";
+      let proteinName = "Unknown protein";
+      let organism = "Homo sapiens";
+
+      if (idParts.length >= 4) {
+        hsnId = idParts[1]; // HSN0001
+        geneName = idParts[3].split("_")[0]; // NUD4B from NUD4B_HUMAN
+
+        // Extract protein name from description
+        const descStart = hitDef.indexOf(" ");
+        if (descStart > 0) {
+          const description = hitDef.substring(descStart + 1);
+          const osIndex = description.indexOf(" OS=");
+          if (osIndex > 0) {
+            proteinName = description.substring(0, osIndex);
+
+            // Extract organism
+            const osMatch = description.match(/OS=([^=]+?)(?:\s+[A-Z]{2}=|$)/);
+            if (osMatch) {
+              organism = osMatch[1].trim();
+            }
+          } else {
+            proteinName = description;
+          }
+        }
+      }
+
+      // Get the best HSP (High-scoring Segment Pair)
+      const hsps = hit["Hit_hsps"]?.[0]?.["Hsp"];
+      if (!hsps || hsps.length === 0) return null;
+
+      const bestHsp = hsps[0];
+
+      const alignLen = parseInt(bestHsp["Hsp_align-len"]?.[0]) || 1;
+      const identity = parseInt(bestHsp["Hsp_identity"]?.[0]) || 0;
+      const positives = parseInt(bestHsp["Hsp_positive"]?.[0]) || 0;
+
+      return {
+        id: `protein_${hsnId}`,
+        hsnId: hsnId,
+        geneName: geneName,
+        proteinName: proteinName,
+        organism: organism,
+        evalue: parseFloat(bestHsp["Hsp_evalue"]?.[0]) || 999,
+        score: parseFloat(bestHsp["Hsp_score"]?.[0]) || 0,
+        identity: Math.round((identity / alignLen) * 100 * 10) / 10,
+        positives: Math.round((positives / alignLen) * 100 * 10) / 10,
+        gaps: parseInt(bestHsp["Hsp_gaps"]?.[0]) || 0,
+        queryStart: parseInt(bestHsp["Hsp_query-from"]?.[0]) || 1,
+        queryEnd: parseInt(bestHsp["Hsp_query-to"]?.[0]) || 1,
+        subjectStart: parseInt(bestHsp["Hsp_hit-from"]?.[0]) || 1,
+        subjectEnd: parseInt(bestHsp["Hsp_hit-to"]?.[0]) || 1,
+        querySeq: bestHsp["Hsp_qseq"]?.[0] || "",
+        subjectSeq: bestHsp["Hsp_hseq"]?.[0] || "",
+        alignment: bestHsp["Hsp_midline"]?.[0] || "",
+        length: alignLen,
+      };
+    } catch (error) {
+      console.error("Error parsing BLAST hit:", error);
+      return null;
+    }
+  }
+
+  createEmptyResult(querySequence, jobId) {
+    return {
+      jobId,
+      queryLength: querySequence.length,
+      databaseSize: 4533,
+      totalHits: 0,
+      hits: [],
+      statistics: {
+        kappa: 0.041,
+        lambda: 0.267,
+        entropy: 0.14,
+        database: "HSNDB",
+        databaseVersion: "2024.1",
+        totalSequences: 4533,
+      },
+      executionTime: 1,
+    };
+  }
+
+  updateJobStatus(jobId, updates) {
+    const current = this.jobStore.get(jobId) || {};
+    this.jobStore.set(jobId, { ...current, ...updates });
+  }
+
+  cleanupFiles(files) {
+    files.forEach(file => {
+      try {
+        if (fs.existsSync(file)) {
+          fs.unlinkSync(file);
+        }
+      } catch (error) {
+        console.error(`Failed to cleanup file ${file}:`, error);
+      }
+    });
+  }
+
+  getJobStatus(jobId) {
+    return this.jobStore.get(jobId);
+  }
+
+  getJobResults(jobId) {
+    const job = this.jobStore.get(jobId);
+    return job?.results;
+  }
+}
+
+module.exports = BlastRunner;

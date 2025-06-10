@@ -56,43 +56,115 @@ export interface BlastJobStatus {
   error?: string;
 }
 
-// Real BLAST API implementation connecting to BLAST backend server
+// Enhanced BLAST API implementation with better error handling and retry logic
 export class BlastAPI {
   private static baseUrl =
     process.env.NODE_ENV === "development"
       ? "http://localhost:3001/api"
       : "/api";
 
+  private static async fetchWithRetry(url: string, options: RequestInit = {}, retries = 3): Promise<Response> {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+        });
+        
+        if (response.ok || response.status === 400 || response.status === 404) {
+          return response;
+        }
+        
+        if (i === retries - 1) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      } catch (error) {
+        if (i === retries - 1) {
+          throw error;
+        }
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      }
+    }
+    
+    throw new Error("Max retries exceeded");
+  }
+
+  static async checkServerHealth(): Promise<boolean> {
+    try {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/health`);
+      return response.ok;
+    } catch (error) {
+      console.error("Server health check failed:", error);
+      return false;
+    }
+  }
+
+  static async getDatabaseInfo(): Promise<any> {
+    try {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/database/info`);
+      
+      if (!response.ok) {
+        throw new Error("Failed to get database info");
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error getting database info:", error);
+      throw error;
+    }
+  }
+
   static async submitBlastSearch(params: BlastParameters): Promise<string> {
     try {
-      const response = await fetch(`${this.baseUrl}/blast/submit`, {
+      // Validate parameters before submission
+      const validation = validateSequence(params.sequence);
+      if (!validation.valid) {
+        throw new Error(validation.message);
+      }
+
+      const response = await this.fetchWithRetry(`${this.baseUrl}/blast/submit`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(params),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to submit BLAST search");
+        const error = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(error.error || `Server error: ${response.status}`);
       }
 
-      const { jobId } = await response.json();
-      return jobId;
+      const result = await response.json();
+      console.log("BLAST search submitted successfully:", result);
+      return result.jobId;
     } catch (error) {
       console.error("Error submitting BLAST search:", error);
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to BLAST server. Please ensure the server is running on port 3001.");
+      }
       throw error;
     }
   }
 
   static async getJobStatus(jobId: string): Promise<BlastJobStatus> {
     try {
-      const response = await fetch(`${this.baseUrl}/blast/status/${jobId}`);
+      if (!jobId) {
+        throw new Error("Job ID is required");
+      }
+
+      const response = await this.fetchWithRetry(`${this.baseUrl}/blast/status/${jobId}`);
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to get job status");
+        if (response.status === 404) {
+          throw new Error("Job not found");
+        }
+        const error = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(error.error || `Server error: ${response.status}`);
       }
 
       return await response.json();
@@ -104,19 +176,47 @@ export class BlastAPI {
 
   static async getResults(jobId: string): Promise<BlastResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/blast/results/${jobId}`);
+      if (!jobId) {
+        throw new Error("Job ID is required");
+      }
+
+      const response = await this.fetchWithRetry(`${this.baseUrl}/blast/results/${jobId}`);
 
       if (!response.ok) {
         if (response.status === 202) {
           throw new Error("Job not completed yet");
         }
-        const error = await response.json();
-        throw new Error(error.error || "Failed to get results");
+        if (response.status === 404) {
+          throw new Error("Results not found");
+        }
+        const error = await response.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(error.error || `Server error: ${response.status}`);
       }
 
-      return await response.json();
+      const results = await response.json();
+      console.log("BLAST results retrieved successfully:", {
+        jobId,
+        totalHits: results.totalHits,
+        executionTime: results.executionTime
+      });
+      return results;
     } catch (error) {
       console.error("Error getting results:", error);
+      throw error;
+    }
+  }
+
+  static async getActiveJobs(): Promise<any> {
+    try {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/blast/jobs`);
+      
+      if (!response.ok) {
+        throw new Error("Failed to get active jobs");
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error("Error getting active jobs:", error);
       throw error;
     }
   }
