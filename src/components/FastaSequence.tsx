@@ -47,6 +47,7 @@ const FastaSequence = ({ hsnId }: FastaSequenceProps) => {
 
   // Extract sequence from FASTA format (remove header line)
   const fastaLines = fastaData.fasta.split("\n");
+  const headerLine = fastaLines[0] || "";
   const sequence = fastaLines.slice(1).join("").replace(/\s/g, "");
   const displaySequence = sequence.substring(0, 25);
 

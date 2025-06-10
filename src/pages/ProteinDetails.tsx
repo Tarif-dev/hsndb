@@ -115,9 +115,10 @@ const ProteinDetails = () => {
         .from("formats")
         .select("fasta")
         .eq("hsn_id", protein.hsn_id)
-        .single();
+        .maybeSingle();
 
       if (error) {
+        console.error("Error fetching FASTA data:", error);
         toast({
           title: "Export Failed",
           description: "Could not fetch FASTA sequence",
@@ -135,18 +136,15 @@ const ProteinDetails = () => {
         return;
       }
 
-      // Create FASTA file content with proper headers
+      // Create FASTA file content
       const fastaContent = fastaData.fasta;
-      const fileName = `${protein.gene_name}_${protein.hsn_id}.fasta`;
+      const fileName = `${protein.gene_name || protein.protein_name}_${protein.hsn_id}.fasta`;
 
-      // Create blob URL for the FASTA file
+      // Create blob and download
       const fastaBlob = new Blob([fastaContent], { type: "text/plain" });
       const url = URL.createObjectURL(fastaBlob);
 
-      // Open in new tab first (redirect)
-      const newWindow = window.open(url, "_blank");
-
-      // Download the file
+      // Create download link
       const link = document.createElement("a");
       link.href = url;
       link.download = fileName;
@@ -154,7 +152,7 @@ const ProteinDetails = () => {
       link.click();
       document.body.removeChild(link);
 
-      // Clean up the URL after a short delay to ensure download completes
+      // Clean up
       setTimeout(() => {
         URL.revokeObjectURL(url);
       }, 1000);
@@ -1035,3 +1033,5 @@ const ProteinDetails = () => {
 };
 
 export default ProteinDetails;
+
+}
