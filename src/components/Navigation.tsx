@@ -11,15 +11,16 @@ import {
   User,
   Mail,
   HelpCircle,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-
   const navItems = [
     { label: "Browse", href: "/browse", icon: Search },
+    { label: "BLAST", href: "/blast", icon: Zap },
     { label: "Blogs", href: "/blogs", icon: Newspaper },
   ];
 
