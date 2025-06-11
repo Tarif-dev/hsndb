@@ -1,20 +1,43 @@
-
-const { exec } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const xml2js = require('xml2js');
-const config = require('../config');
-const ValidationUtils = require('./validation');
+const { exec } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+const xml2js = require("xml2js");
+const config = require("../config");
+const ValidationUtils = require("./validation");
+const BlastDatabaseMapper = require("./databaseMapper");
 
 class BlastRunner {
   constructor(jobStore) {
     this.jobStore = jobStore;
+    this.databaseMapper = new BlastDatabaseMapper();
+    this.mappingsInitialized = false;
+  }
+
+  async initializeDatabaseMappings() {
+    if (!this.mappingsInitialized) {
+      console.log("🔄 Initializing database mappings for BLAST results...");
+      this.mappingsInitialized = await this.databaseMapper.initializeMappings();
+
+      if (this.mappingsInitialized) {
+        const stats = this.databaseMapper.getStats();
+        console.log(
+          `✅ Database mappings initialized: ${stats.totalProteins} proteins`
+        );
+      } else {
+        console.warn(
+          "⚠️ Database mappings failed to initialize, using fallback"
+        );
+      }
+    }
+    return this.mappingsInitialized;
   }
 
   async submitJob(params) {
     // Validate sequence
-    const sequenceValidation = ValidationUtils.validateSequence(params.sequence);
+    const sequenceValidation = ValidationUtils.validateSequence(
+      params.sequence
+    );
     if (!sequenceValidation.valid) {
       throw new Error(sequenceValidation.message);
     }
@@ -22,7 +45,7 @@ class BlastRunner {
     // Validate parameters
     const paramValidation = ValidationUtils.validateParameters(params);
     if (!paramValidation.valid) {
-      throw new Error(paramValidation.errors.join(', '));
+      throw new Error(paramValidation.errors.join(", "));
     }
 
     const jobId = uuidv4();
@@ -33,11 +56,11 @@ class BlastRunner {
       status: "pending",
       progress: 0,
       startTime: Date.now(),
-      parameters: params
+      parameters: params,
     });
 
     // Process BLAST search asynchronously
-    this.processBlastSearch(jobId, params).catch(error => {
+    this.processBlastSearch(jobId, params).catch((error) => {
       console.error(`Job ${jobId} failed:`, error);
       this.updateJobStatus(jobId, {
         status: "failed",
@@ -100,7 +123,11 @@ class BlastRunner {
 
       // Parse results
       const xmlResults = fs.readFileSync(outputFile, "utf8");
-      const parsedResults = await this.parseBlastXML(xmlResults, cleanSequence, jobId);
+      const parsedResults = await this.parseBlastXML(
+        xmlResults,
+        cleanSequence,
+        jobId
+      );
       this.updateJobStatus(jobId, { progress: 95 });
 
       // Clean up temporary files
@@ -113,7 +140,6 @@ class BlastRunner {
         results: parsedResults,
         completedTime: Date.now(),
       });
-
     } catch (error) {
       console.error(`BLAST execution error for job ${jobId}:`, error);
       this.updateJobStatus(jobId, {
@@ -140,16 +166,27 @@ class BlastRunner {
 
     let cmd = [
       executable,
-      "-query", `"${inputFile}"`,
-      "-db", `"${config.BLAST_DB_PATH}"`,
-      "-evalue", evalue,
-      "-max_target_seqs", maxTargetSeqs,
-      "-outfmt", "5", // XML output
-      "-out", `"${outputFile}"`,
+      "-query",
+      `"${inputFile}"`,
+      "-db",
+      `"${config.BLAST_DB_PATH}"`,
+      "-evalue",
+      evalue,
+      "-max_target_seqs",
+      maxTargetSeqs,
+      "-outfmt",
+      "5", // XML output
+      "-out",
+      `"${outputFile}"`,
     ];
 
     // Add algorithm-specific parameters
-    if (matrix && (algorithm === "blastp" || algorithm === "blastx" || algorithm === "tblastn")) {
+    if (
+      matrix &&
+      (algorithm === "blastp" ||
+        algorithm === "blastx" ||
+        algorithm === "tblastn")
+    ) {
       cmd.push("-matrix", matrix);
     }
 
@@ -172,19 +209,23 @@ class BlastRunner {
 
   executeBlastCommand(command) {
     return new Promise((resolve, reject) => {
-      exec(command, { 
-        maxBuffer: 1024 * 1024 * 50, // 50MB buffer
-        timeout: 300000 // 5 minute timeout
-      }, (error, stdout, stderr) => {
-        if (error) {
-          console.error("BLAST execution failed:", error);
-          console.error("stderr:", stderr);
-          reject(new Error(`BLAST execution failed: ${error.message}`));
-        } else {
-          console.log("BLAST completed successfully");
-          resolve(stdout);
+      exec(
+        command,
+        {
+          maxBuffer: 1024 * 1024 * 50, // 50MB buffer
+          timeout: 300000, // 5 minute timeout
+        },
+        (error, stdout, stderr) => {
+          if (error) {
+            console.error("BLAST execution failed:", error);
+            console.error("stderr:", stderr);
+            reject(new Error(`BLAST execution failed: ${error.message}`));
+          } else {
+            console.log("BLAST completed successfully");
+            resolve(stdout);
+          }
         }
-      });
+      );
     });
   }
 
@@ -198,18 +239,24 @@ class BlastRunner {
         throw new Error("Invalid BLAST XML output");
       }
 
-      const iterations = blastOutput["BlastOutput_iterations"]?.[0]?.["Iteration"];
+      const iterations =
+        blastOutput["BlastOutput_iterations"]?.[0]?.["Iteration"];
       if (!iterations || iterations.length === 0) {
         return this.createEmptyResult(querySequence, jobId);
       }
 
       const iteration = iterations[0];
       const hits = iteration["Iteration_hits"]?.[0]?.["Hit"] || [];
+      const parsedHits = [];
+      for (const hit of hits) {
+        const parsedHit = await this.parseBlastHit(hit);
+        if (parsedHit) {
+          parsedHits.push(parsedHit);
+        }
+      }
 
-      const parsedHits = hits
-        .map((hit) => this.parseBlastHit(hit))
-        .filter(Boolean)
-        .sort((a, b) => a.evalue - b.evalue); // Sort by e-value (most significant first)
+      // Sort by e-value (most significant first)
+      parsedHits.sort((a, b) => a.evalue - b.evalue);
 
       // Get statistics
       const stats = iteration["Iteration_stat"]?.[0]?.["Statistics"]?.[0];
@@ -235,8 +282,7 @@ class BlastRunner {
       throw new Error("Failed to parse BLAST results");
     }
   }
-
-  parseBlastHit(hit) {
+  async parseBlastHit(hit) {
     try {
       const hitId = hit["Hit_id"]?.[0];
       const hitDef = hit["Hit_def"]?.[0];
@@ -246,36 +292,19 @@ class BlastRunner {
         return null;
       }
 
-      // Parse FASTA header format: >sp|HSN0001|A0A024RBG1|NUD4B_HUMAN Diphosphoinositol...
-      const headerParts = hitDef.split(" ");
-      const idParts = headerParts[0].split("|");
+      // Initialize database mappings if not done yet
+      await this.initializeDatabaseMappings();
 
-      let hsnId = hitId;
-      let geneName = "Unknown";
-      let proteinName = "Unknown protein";
-      let organism = "Homo sapiens";
+      // Extract FASTA identifier from the hit
+      const fastaId = this.databaseMapper.extractFastaIdentifier(hitId);
 
-      if (idParts.length >= 4) {
-        hsnId = idParts[1]; // HSN0001
-        geneName = idParts[3].split("_")[0]; // NUD4B from NUD4B_HUMAN
-
-        // Extract protein name from description
-        const descStart = hitDef.indexOf(" ");
-        if (descStart > 0) {
-          const description = hitDef.substring(descStart + 1);
-          const osIndex = description.indexOf(" OS=");
-          if (osIndex > 0) {
-            proteinName = description.substring(0, osIndex);
-
-            // Extract organism
-            const osMatch = description.match(/OS=([^=]+?)(?:\s+[A-Z]{2}=|$)/);
-            if (osMatch) {
-              organism = osMatch[1].trim();
-            }
-          } else {
-            proteinName = description;
-          }
-        }
+      // Get protein details from database
+      let proteinDetails;
+      if (this.mappingsInitialized) {
+        proteinDetails = await this.databaseMapper.getProteinDetails(fastaId);
+      } else {
+        // Fallback to old parsing method
+        proteinDetails = this.parseFallbackProteinDetails(hitId, hitDef);
       }
 
       // Get the best HSP (High-scoring Segment Pair)
@@ -289,11 +318,13 @@ class BlastRunner {
       const positives = parseInt(bestHsp["Hsp_positive"]?.[0]) || 0;
 
       return {
-        id: `protein_${hsnId}`,
-        hsnId: hsnId,
-        geneName: geneName,
-        proteinName: proteinName,
-        organism: organism,
+        id: proteinDetails.id,
+        hsnId: proteinDetails.hsnId,
+        geneName: proteinDetails.geneName,
+        proteinName: proteinDetails.proteinName,
+        organism: proteinDetails.organism,
+        description: proteinDetails.description,
+        uniprotId: proteinDetails.uniprotId,
         evalue: parseFloat(bestHsp["Hsp_evalue"]?.[0]) || 999,
         score: parseFloat(bestHsp["Hsp_score"]?.[0]) || 0,
         identity: Math.round((identity / alignLen) * 100 * 10) / 10,
@@ -312,6 +343,50 @@ class BlastRunner {
       console.error("Error parsing BLAST hit:", error);
       return null;
     }
+  }
+
+  parseFallbackProteinDetails(hitId, hitDef) {
+    // Fallback parsing for when database mapping fails
+    const headerParts = hitDef.split(" ");
+    const idParts = headerParts[0].split("|");
+
+    let hsnId = hitId;
+    let geneName = "Unknown";
+    let proteinName = "Unknown protein";
+    let organism = "Homo sapiens";
+
+    if (idParts.length >= 4) {
+      hsnId = idParts[1]; // HSN0001
+      geneName = idParts[3].split("_")[0]; // NUD4B from NUD4B_HUMAN
+
+      // Extract protein name from description
+      const descStart = hitDef.indexOf(" ");
+      if (descStart > 0) {
+        const description = hitDef.substring(descStart + 1);
+        const osIndex = description.indexOf(" OS=");
+        if (osIndex > 0) {
+          proteinName = description.substring(0, osIndex);
+
+          // Extract organism
+          const osMatch = description.match(/OS=([^=]+?)(?:\s+[A-Z]{2}=|$)/);
+          if (osMatch) {
+            organism = osMatch[1].trim();
+          }
+        } else {
+          proteinName = description;
+        }
+      }
+    }
+
+    return {
+      id: `protein_${hsnId}`,
+      hsnId: hsnId,
+      geneName: geneName,
+      proteinName: proteinName,
+      organism: organism,
+      description: "Parsed from FASTA header",
+      uniprotId: null,
+    };
   }
 
   createEmptyResult(querySequence, jobId) {
@@ -339,7 +414,7 @@ class BlastRunner {
   }
 
   cleanupFiles(files) {
-    files.forEach(file => {
+    files.forEach((file) => {
       try {
         if (fs.existsSync(file)) {
           fs.unlinkSync(file);

@@ -1,6 +1,18 @@
 const path = require("path");
 
+// Load environment variables if .env file exists
+try {
+  require("dotenv").config();
+} catch (error) {
+  // dotenv not installed, that's ok for development
+}
+
 module.exports = {
+  // Supabase Configuration
+  SUPABASE_URL:
+    process.env.SUPABASE_URL || "https://your-supabase-url.supabase.co",
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "your-supabase-anon-key",
+
   // BLAST Configuration
   BLAST_BIN_PATH:
     process.env.BLAST_BIN_PATH ||
