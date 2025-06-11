@@ -12,7 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 export const useBlastSearch = () => {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [shouldPoll, setShouldPoll] = useState(false);
-  const [serverStatus, setServerStatus] = useState<'unknown' | 'online' | 'offline'>('unknown');
+  const [serverStatus, setServerStatus] = useState<
+    "unknown" | "online" | "offline"
+  >("unknown");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -21,17 +23,18 @@ export const useBlastSearch = () => {
     const checkHealth = async () => {
       try {
         const isHealthy = await BlastAPI.checkServerHealth();
-        setServerStatus(isHealthy ? 'online' : 'offline');
-        
+        setServerStatus(isHealthy ? "online" : "offline");
+
         if (!isHealthy) {
           toast({
             title: "Server Offline",
-            description: "BLAST server is not responding. Please ensure it's running on port 3001.",
+            description:
+              "BLAST server is not responding. Please ensure it's running on port 3001.",
             variant: "destructive",
           });
         }
       } catch (error) {
-        setServerStatus('offline');
+        setServerStatus("offline");
         console.error("Health check failed:", error);
       }
     };
@@ -51,7 +54,9 @@ export const useBlastSearch = () => {
       // Check server status first
       const isHealthy = await BlastAPI.checkServerHealth();
       if (!isHealthy) {
-        throw new Error("BLAST server is not responding. Please ensure it's running on port 3001.");
+        throw new Error(
+          "BLAST server is not responding. Please ensure it's running on port 3001."
+        );
       }
 
       return BlastAPI.submitBlastSearch(params);
@@ -59,16 +64,19 @@ export const useBlastSearch = () => {
     onSuccess: (jobId) => {
       setCurrentJobId(jobId);
       setShouldPoll(true);
-      setServerStatus('online');
+      setServerStatus("online");
       toast({
         title: "BLAST Search Submitted",
-        description: `Job ${jobId.substring(0, 8)}... has been queued for processing.`,
+        description: `Job ${jobId.substring(
+          0,
+          8
+        )}... has been queued for processing.`,
       });
     },
     onError: (error: Error) => {
       console.error("BLAST submission failed:", error);
       if (error.message.includes("Cannot connect")) {
-        setServerStatus('offline');
+        setServerStatus("offline");
       }
       toast({
         title: "Search Failed",
@@ -79,19 +87,26 @@ export const useBlastSearch = () => {
   });
 
   // Poll job status with error handling
-  const { data: jobStatus, isLoading: isPolling, error: pollingError } = useQuery({
+  const {
+    data: jobStatus,
+    isLoading: isPolling,
+    error: pollingError,
+  } = useQuery({
     queryKey: ["blast-job-status", currentJobId],
     queryFn: async () => {
       if (!currentJobId) return null;
-      
+
       try {
         const status = await BlastAPI.getJobStatus(currentJobId);
-        setServerStatus('online');
+        setServerStatus("online");
         return status;
       } catch (error) {
         console.error("Polling error:", error);
-        if (error instanceof Error && error.message.includes("Cannot connect")) {
-          setServerStatus('offline');
+        if (
+          error instanceof Error &&
+          error.message.includes("Cannot connect")
+        ) {
+          setServerStatus("offline");
         }
         throw error;
       }
@@ -102,10 +117,11 @@ export const useBlastSearch = () => {
     retry: (failureCount, error) => {
       // Stop retrying after 3 failures or if it's a 404 (job not found)
       if (failureCount >= 3) return false;
-      if (error instanceof Error && error.message.includes("Job not found")) return false;
+      if (error instanceof Error && error.message.includes("Job not found"))
+        return false;
       return true;
     },
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Stop polling when job is complete or failed
@@ -133,7 +149,10 @@ export const useBlastSearch = () => {
     if (pollingError) {
       console.error("Polling error:", pollingError);
       // Don't show toast for every polling error to avoid spam
-      if (pollingError instanceof Error && pollingError.message.includes("Job not found")) {
+      if (
+        pollingError instanceof Error &&
+        pollingError.message.includes("Job not found")
+      ) {
         setShouldPoll(false);
         toast({
           title: "Job Not Found",
@@ -145,19 +164,26 @@ export const useBlastSearch = () => {
   }, [pollingError, toast]);
 
   // Get results query with better error handling
-  const { data: results, isLoading: isLoadingResults, error: resultsError } = useQuery({
+  const {
+    data: results,
+    isLoading: isLoadingResults,
+    error: resultsError,
+  } = useQuery({
     queryKey: ["blast-results", currentJobId],
     queryFn: async () => {
       if (!currentJobId) return null;
-      
+
       try {
         const results = await BlastAPI.getResults(currentJobId);
-        setServerStatus('online');
+        setServerStatus("online");
         return results;
       } catch (error) {
         console.error("Results error:", error);
-        if (error instanceof Error && error.message.includes("Cannot connect")) {
-          setServerStatus('offline');
+        if (
+          error instanceof Error &&
+          error.message.includes("Cannot connect")
+        ) {
+          setServerStatus("offline");
         }
         throw error;
       }
@@ -165,7 +191,8 @@ export const useBlastSearch = () => {
     enabled: jobStatus?.status === "completed",
     retry: (failureCount, error) => {
       if (failureCount >= 3) return false;
-      if (error instanceof Error && error.message.includes("not found")) return false;
+      if (error instanceof Error && error.message.includes("not found"))
+        return false;
       return true;
     },
   });
@@ -176,7 +203,7 @@ export const useBlastSearch = () => {
         algorithm: params.algorithm,
         evalue: params.evalue,
         maxTargetSeqs: params.maxTargetSeqs,
-        sequenceLength: params.sequence.length
+        sequenceLength: params.sequence.length,
       });
       submitMutation.mutate(params);
     },
@@ -209,11 +236,15 @@ export const useBlastSearch = () => {
     results,
 
     // Error handling
-    error: submitMutation.error || pollingError || resultsError ||
+    error:
+      submitMutation.error ||
+      pollingError ||
+      resultsError ||
       (jobStatus?.status === "failed" ? new Error(jobStatus.error) : null),
 
     // Computed states
-    isSearching: jobStatus?.status === "running" || jobStatus?.status === "pending",
+    isSearching:
+      jobStatus?.status === "running" || jobStatus?.status === "pending",
     isCompleted: jobStatus?.status === "completed",
     isFailed: jobStatus?.status === "failed",
     progress: jobStatus?.progress || 0,
@@ -278,10 +309,6 @@ export const useBlastAnalysis = (results: BlastResult | null) => {
             hits.length
           : 0,
       topHit: hits[0] || null,
-      hitsByOrganism: hits.reduce((acc, hit) => {
-        acc[hit.organism] = (acc[hit.organism] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>),
       evalueBins: {
         highly_significant: hits.filter((hit) => hit.evalue < 1e-50).length,
         significant: hits.filter(

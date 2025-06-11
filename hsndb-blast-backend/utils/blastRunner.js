@@ -14,6 +14,7 @@ class BlastRunner {
     this.mappingsInitialized = false;
   }
 
+  // Initialize database mappings once at startup
   async initializeDatabaseMappings() {
     if (!this.mappingsInitialized) {
       console.log("🔄 Initializing database mappings for BLAST results...");
@@ -22,11 +23,11 @@ class BlastRunner {
       if (this.mappingsInitialized) {
         const stats = this.databaseMapper.getStats();
         console.log(
-          `✅ Database mappings initialized: ${stats.totalProteins} proteins`
+          `✅ Database mappings initialized: ${stats.totalProteins} proteins mapped by UniProt ID`
         );
       } else {
         console.warn(
-          "⚠️ Database mappings failed to initialize, using fallback"
+          "⚠️ Database mappings failed to initialize, using fallback parsing"
         );
       }
     }
@@ -292,19 +293,23 @@ class BlastRunner {
         return null;
       }
 
-      // Initialize database mappings if not done yet
-      await this.initializeDatabaseMappings();
+      // Extract UniProt identifier from the hit
+      const uniprotId = this.databaseMapper.extractFastaIdentifier(hitId);
 
-      // Extract FASTA identifier from the hit
-      const fastaId = this.databaseMapper.extractFastaIdentifier(hitId);
-
-      // Get protein details from database
+      // Get protein details from database using UniProt ID
       let proteinDetails;
       if (this.mappingsInitialized) {
-        proteinDetails = await this.databaseMapper.getProteinDetails(fastaId);
+        proteinDetails = await this.databaseMapper.getProteinDetails(uniprotId);
       } else {
         // Fallback to old parsing method
-        proteinDetails = this.parseFallbackProteinDetails(hitId, hitDef);
+        console.warn(
+          "⚠️ Database mappings not initialized, using fallback parsing"
+        );
+        proteinDetails = this.parseFallbackProteinDetails(
+          hitId,
+          hitDef,
+          uniprotId
+        );
       }
 
       // Get the best HSP (High-scoring Segment Pair)
@@ -316,13 +321,11 @@ class BlastRunner {
       const alignLen = parseInt(bestHsp["Hsp_align-len"]?.[0]) || 1;
       const identity = parseInt(bestHsp["Hsp_identity"]?.[0]) || 0;
       const positives = parseInt(bestHsp["Hsp_positive"]?.[0]) || 0;
-
       return {
         id: proteinDetails.id,
         hsnId: proteinDetails.hsnId,
         geneName: proteinDetails.geneName,
         proteinName: proteinDetails.proteinName,
-        organism: proteinDetails.organism,
         description: proteinDetails.description,
         uniprotId: proteinDetails.uniprotId,
         evalue: parseFloat(bestHsp["Hsp_evalue"]?.[0]) || 999,
@@ -344,20 +347,24 @@ class BlastRunner {
       return null;
     }
   }
-
-  parseFallbackProteinDetails(hitId, hitDef) {
-    // Fallback parsing for when database mapping fails
+  parseFallbackProteinDetails(hitId, hitDef, uniprotId = null) {
+    // Enhanced fallback parsing for when database mapping fails
     const headerParts = hitDef.split(" ");
     const idParts = headerParts[0].split("|");
 
     let hsnId = hitId;
     let geneName = "Unknown";
     let proteinName = "Unknown protein";
-    let organism = "Homo sapiens";
+    let extractedUniprotId = uniprotId;
 
-    if (idParts.length >= 4) {
-      hsnId = idParts[1]; // HSN0001
-      geneName = idParts[3].split("_")[0]; // NUD4B from NUD4B_HUMAN
+    // Parse UniProt format: sp|A0A024RBG1|NUD4B_HUMAN
+    if (idParts.length >= 3) {
+      extractedUniprotId = idParts[1]; // A0A024RBG1
+      const proteinCode = idParts[2]; // NUD4B_HUMAN
+
+      if (proteinCode.includes("_")) {
+        geneName = proteinCode.split("_")[0]; // NUD4B from NUD4B_HUMAN
+      }
 
       // Extract protein name from description
       const descStart = hitDef.indexOf(" ");
@@ -366,12 +373,6 @@ class BlastRunner {
         const osIndex = description.indexOf(" OS=");
         if (osIndex > 0) {
           proteinName = description.substring(0, osIndex);
-
-          // Extract organism
-          const osMatch = description.match(/OS=([^=]+?)(?:\s+[A-Z]{2}=|$)/);
-          if (osMatch) {
-            organism = osMatch[1].trim();
-          }
         } else {
           proteinName = description;
         }
@@ -379,13 +380,12 @@ class BlastRunner {
     }
 
     return {
-      id: `protein_${hsnId}`,
+      id: `protein_${extractedUniprotId || hsnId}`,
       hsnId: hsnId,
       geneName: geneName,
       proteinName: proteinName,
-      organism: organism,
-      description: "Parsed from FASTA header",
-      uniprotId: null,
+      description: "Parsed from FASTA header (fallback)",
+      uniprotId: extractedUniprotId,
     };
   }
 

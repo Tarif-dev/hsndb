@@ -69,8 +69,7 @@ const BlastResults: React.FC<BlastResultsProps> = ({
         filterText === "" ||
         hit.geneName.toLowerCase().includes(filterText.toLowerCase()) ||
         hit.proteinName.toLowerCase().includes(filterText.toLowerCase()) ||
-        hit.hsnId.toLowerCase().includes(filterText.toLowerCase()) ||
-        hit.organism.toLowerCase().includes(filterText.toLowerCase());
+        hit.hsnId.toLowerCase().includes(filterText.toLowerCase());
 
       const matchesIdentity = hit.identity >= parseFloat(minIdentity);
       const matchesEvalue = hit.evalue <= parseFloat(maxEvalue);
@@ -146,7 +145,8 @@ const BlastResults: React.FC<BlastResultsProps> = ({
     return "text-gray-600";
   };
   const handleProteinClick = (proteinId: string) => {
-    navigate(`/protein/${proteinId}`);
+    // Open protein details in a new tab to preserve BLAST results
+    window.open(`/protein/${proteinId}`, "_blank");
   };
 
   const handleCopySequence = (sequence: string) => {
@@ -166,7 +166,6 @@ const BlastResults: React.FC<BlastResultsProps> = ({
           "HSN_ID",
           "Gene_Name",
           "Protein_Name",
-          "Organism",
           "E_value",
           "Score",
           "Identity_%",
@@ -176,7 +175,6 @@ const BlastResults: React.FC<BlastResultsProps> = ({
           hit.hsnId,
           hit.geneName,
           hit.proteinName,
-          hit.organism,
           hit.evalue,
           hit.score,
           hit.identity,
@@ -194,7 +192,6 @@ const BlastResults: React.FC<BlastResultsProps> = ({
           "HSN_ID",
           "Gene_Name",
           "Protein_Name",
-          "Organism",
           "E_value",
           "Score",
           "Identity_%",
@@ -204,7 +201,6 @@ const BlastResults: React.FC<BlastResultsProps> = ({
           hit.hsnId,
           hit.geneName,
           hit.proteinName,
-          hit.organism,
           hit.evalue,
           hit.score,
           hit.identity,
@@ -483,18 +479,9 @@ const BlastResults: React.FC<BlastResultsProps> = ({
                         <div className="flex items-center gap-2">
                           Gene
                           {getSortIcon("geneName")}
-                        </div>
+                        </div>{" "}
                       </TableHead>
                       <TableHead>Protein Name</TableHead>
-                      <TableHead
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => handleSort("organism")}
-                      >
-                        <div className="flex items-center gap-2">
-                          Organism
-                          {getSortIcon("organism")}
-                        </div>
-                      </TableHead>
                       <TableHead
                         className="cursor-pointer hover:bg-gray-50"
                         onClick={() => handleSort("evalue")}
@@ -540,14 +527,13 @@ const BlastResults: React.FC<BlastResultsProps> = ({
                         </TableCell>
                         <TableCell className="font-medium">
                           {hit.geneName}
-                        </TableCell>
+                        </TableCell>{" "}
                         <TableCell
                           className="max-w-xs truncate"
                           title={hit.proteinName}
                         >
                           {hit.proteinName}
                         </TableCell>
-                        <TableCell className="italic">{hit.organism}</TableCell>
                         <TableCell className={getSignificanceColor(hit.evalue)}>
                           {formatEvalue(hit.evalue)}
                         </TableCell>

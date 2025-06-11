@@ -7,61 +7,78 @@ class BlastDatabaseMapper {
     // Initialize Supabase client
     this.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
-    // Cache for FASTA to HSN ID mapping
-    this.fastaToHsnCache = new Map();
-    this.hsnToProteinCache = new Map();
+    // Cache for UniProt ID to protein details mapping
+    this.uniprotToProteinCache = new Map();
   }
 
   async initializeMappings() {
     try {
-      console.log("🔄 Initializing FASTA to protein mappings...");
-      // Get all FASTA sequences and their HSN IDs from formats table
-      const { data: formats, error: formatsError } = await this.supabase
-        .from("formats")
-        .select("hsn_id, fasta");
+      console.log("🔄 Initializing UniProt ID to protein mappings...");
 
-      if (formatsError) {
-        throw new Error(`Failed to fetch formats: ${formatsError.message}`);
-      }
+      // Get ALL protein details by fetching in batches to bypass Supabase limits
+      let allProteins = [];
+      let batch = 0;
+      const batchSize = 1000;
+      let hasMore = true;
 
-      // Build FASTA to HSN ID mapping
-      formats.forEach((format) => {
-        if (format.fasta && format.hsn_id) {
-          // Extract identifier from FASTA header
-          const fastaHeader = format.fasta.split("\n")[0];
-          const fastaId = this.extractFastaIdentifier(fastaHeader);
+      while (hasMore) {
+        const start = batch * batchSize;
+        const end = start + batchSize - 1;
 
-          if (fastaId) {
-            this.fastaToHsnCache.set(fastaId, format.hsn_id);
+        console.log(`📥 Fetching batch ${batch + 1} (rows ${start}-${end})...`);
+
+        const { data: proteins, error: proteinsError } = await this.supabase
+          .from("proteins")
+          .select("id, hsn_id, uniprot_id, gene_name, protein_name")
+          .range(start, end);
+
+        if (proteinsError) {
+          throw new Error(
+            `Failed to fetch proteins batch ${batch}: ${proteinsError.message}`
+          );
+        }
+
+        if (proteins.length === 0) {
+          hasMore = false;
+        } else {
+          allProteins = allProteins.concat(proteins);
+          batch++;
+
+          // Stop if we got less than a full batch (indicates we're at the end)
+          if (proteins.length < batchSize) {
+            hasMore = false;
           }
         }
-      }); // Get all protein details from proteins table
-      const { data: proteins, error: proteinsError } = await this.supabase
-        .from("proteins")
-        .select("hsn_id, uniprot_id, gene_name, protein_name");
-
-      if (proteinsError) {
-        throw new Error(`Failed to fetch proteins: ${proteinsError.message}`);
       }
 
-      // Build HSN ID to protein details mapping
-      proteins.forEach((protein) => {
-        if (protein.hsn_id) {
-          this.hsnToProteinCache.set(protein.hsn_id, {
+      console.log(
+        `📥 Total fetched: ${allProteins.length} proteins from ${batch} batches`
+      ); // Build UniProt ID to protein details mapping (direct mapping)
+      let mappedCount = 0;
+      let skippedCount = 0;
+
+      allProteins.forEach((protein) => {
+        if (protein.uniprot_id) {
+          this.uniprotToProteinCache.set(protein.uniprot_id, {
+            id: protein.id,
             hsnId: protein.hsn_id,
             uniprotId: protein.uniprot_id,
             geneName: protein.gene_name || "Unknown",
             proteinName: protein.protein_name || "Unknown protein",
-            organism: "Homo sapiens", // Default for all HSNDB proteins
             description: `S-nitrosylated protein: ${
               protein.protein_name || "Unknown protein"
             }`,
           });
+          mappedCount++;
+        } else {
+          skippedCount++;
         }
       });
 
-      console.log(`✅ Loaded ${this.fastaToHsnCache.size} FASTA mappings`);
-      console.log(`✅ Loaded ${this.hsnToProteinCache.size} protein details`);
+      console.log(`✅ Mapped ${mappedCount} proteins with UniProt IDs`);
+      console.log(`⚠️  Skipped ${skippedCount} proteins without UniProt IDs`);
+      console.log(`✅ Total proteins processed: ${allProteins.length}`);
+      console.log("✅ Direct UniProt ID → Protein mapping initialized");
 
       return true;
     } catch (error) {
@@ -69,23 +86,23 @@ class BlastDatabaseMapper {
       return false;
     }
   }
-
   extractFastaIdentifier(fastaHeader) {
-    // Remove '>' and extract the first identifier
-    // Handle various FASTA header formats:
-    // >P12345
-    // >sp|P12345|PROTEIN_NAME
-    // >HSN001
-    // etc.
+    // Remove '>' and extract UniProt ID from FASTA header
+    // Handle UniProt format: >sp|A0A024RBG1|NUD4B_HUMAN Diphosphoinositol...
 
     const cleaned = fastaHeader.replace(/^>/, "").trim();
 
-    // Try different patterns
+    // Primary pattern for UniProt format: sp|UNIPROT_ID|PROTEIN_NAME
+    const uniprotMatch = cleaned.match(/^sp\|([A-Z0-9]+)\|/);
+    if (uniprotMatch) {
+      return uniprotMatch[1]; // Return the UniProt ID (e.g., A0A024RBG1)
+    }
+
+    // Fallback patterns for other formats
     const patterns = [
-      /^([A-Z0-9]+)/, // Simple identifier
-      /sp\|([A-Z0-9]+)\|/, // SwissProt format
-      /tr\|([A-Z0-9]+)\|/, // TrEMBL format
-      /(HSN\d+)/, // HSN format
+      /^tr\|([A-Z0-9]+)\|/, // TrEMBL format
+      /^([A-Z0-9]{6,10})/, // Direct UniProt ID format
+      /(HSN\d+)/, // HSN format (fallback)
       /^([^\s\|]+)/, // First non-space, non-pipe part
     ];
 
@@ -96,64 +113,57 @@ class BlastDatabaseMapper {
       }
     }
 
-    return cleaned.split(/\s+/)[0]; // Fallback to first word
+    return cleaned.split(/\s+/)[0]; // Final fallback to first word
   }
 
   async getProteinDetails(fastaIdentifier) {
     try {
-      // First, map FASTA identifier to HSN ID
-      const hsnId = this.fastaToHsnCache.get(fastaIdentifier);
+      // Direct lookup using UniProt ID
+      const proteinDetails = this.uniprotToProteinCache.get(fastaIdentifier);
 
-      if (!hsnId) {
+      if (!proteinDetails) {
         console.warn(
-          `⚠️ No HSN ID found for FASTA identifier: ${fastaIdentifier}`
+          `⚠️ No protein details found for UniProt ID: ${fastaIdentifier}`
         );
         return this.getDefaultProteinDetails(fastaIdentifier);
       }
 
-      // Then, get protein details using HSN ID
-      const proteinDetails = this.hsnToProteinCache.get(hsnId);
-
-      if (!proteinDetails) {
-        console.warn(`⚠️ No protein details found for HSN ID: ${hsnId}`);
-        return this.getDefaultProteinDetails(fastaIdentifier, hsnId);
-      }
+      console.log(
+        `✅ Found protein details for ${fastaIdentifier}: ${proteinDetails.geneName} - ${proteinDetails.proteinName}`
+      );
 
       return {
         ...proteinDetails,
-        id: `protein_${hsnId}`, // For navigation purposes
+        id: proteinDetails.id || `protein_${proteinDetails.hsnId}`, // Use actual ID or fallback
       };
     } catch (error) {
       console.error("❌ Error getting protein details:", error.message);
       return this.getDefaultProteinDetails(fastaIdentifier);
     }
   }
-
   getDefaultProteinDetails(fastaIdentifier, hsnId = null) {
     return {
       id: `protein_${hsnId || fastaIdentifier}`,
       hsnId: hsnId || fastaIdentifier,
-      uniprotId: null,
+      uniprotId: fastaIdentifier, // Use the UniProt ID as fallback
       geneName: "Unknown",
       proteinName: "Unknown protein",
-      organism: "Homo sapiens",
       description: "Protein details not found in database",
     };
   }
 
   async refreshMappings() {
     // Clear caches and reload
-    this.fastaToHsnCache.clear();
-    this.hsnToProteinCache.clear();
+    this.uniprotToProteinCache.clear();
     return await this.initializeMappings();
   }
 
-  // Batch process multiple FASTA identifiers
-  async getMultipleProteinDetails(fastaIdentifiers) {
+  // Batch process multiple UniProt identifiers
+  async getMultipleProteinDetails(uniprotIds) {
     const results = [];
 
-    for (const identifier of fastaIdentifiers) {
-      const details = await this.getProteinDetails(identifier);
+    for (const uniprotId of uniprotIds) {
+      const details = await this.getProteinDetails(uniprotId);
       results.push(details);
     }
 
@@ -163,9 +173,8 @@ class BlastDatabaseMapper {
   // Get statistics
   getStats() {
     return {
-      fastaToHsnMappings: this.fastaToHsnCache.size,
-      hsnToProteinMappings: this.hsnToProteinCache.size,
-      totalProteins: this.hsnToProteinCache.size,
+      uniprotToProteinMappings: this.uniprotToProteinCache.size,
+      totalProteins: this.uniprotToProteinCache.size,
     };
   }
 }

@@ -12,11 +12,12 @@ module.exports = {
   SUPABASE_URL:
     process.env.SUPABASE_URL || "https://your-supabase-url.supabase.co",
   SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "your-supabase-anon-key",
-
   // BLAST Configuration
   BLAST_BIN_PATH:
     process.env.BLAST_BIN_PATH ||
-    "C:\\Program Files\\NCBI\\blast-2.16.0+\\bin\\",
+    (process.platform === "win32"
+      ? "C:\\Program Files\\NCBI\\blast-2.16.0+\\bin\\"
+      : "/usr/local/bin/"),
   BLAST_DB_PATH: path.join(__dirname, "blastdb", "hsndb"),
   TEMP_DIR: path.join(__dirname, "temp"),
   // Database Configuration

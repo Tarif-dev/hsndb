@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -6,6 +5,7 @@ const config = require("./config");
 const DatabaseManager = require("./utils/database");
 const BlastRunner = require("./utils/blastRunner");
 const ValidationUtils = require("./utils/validation");
+const JobStore = require("./utils/jobStore");
 
 const app = express();
 
@@ -19,8 +19,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Store for job status (in production, use Redis or database)
-const jobStore = new Map();
+// Initialize job store with LRU cache (max 1000 jobs)
+const jobStore = new JobStore(1000);
 const blastRunner = new BlastRunner(jobStore);
 
 // Health check endpoint
@@ -29,7 +29,7 @@ app.get("/api/health", (req, res) => {
     status: "healthy",
     timestamp: new Date().toISOString(),
     database: "HSNDB",
-    version: "1.0.0"
+    version: "1.0.0",
   });
 });
 
@@ -41,15 +41,54 @@ app.get("/api/database/info", async (req, res) => {
       valid: isValid,
       path: config.BLAST_DB_PATH,
       totalSequences: 4533,
-      databaseVersion: "2024.1"
+      databaseVersion: "2024.1",
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to get database info" });
   }
 });
 
+// Input validation middleware
+const validateBlastRequest = (req, res, next) => {
+  const { sequence, algorithm, evalue, maxTargetSeqs } = req.body;
+
+  // Validate sequence
+  if (
+    !sequence ||
+    typeof sequence !== "string" ||
+    sequence.trim().length === 0
+  ) {
+    return res.status(400).json({ error: "Valid sequence is required" });
+  }
+
+  // Validate algorithm
+  const validAlgorithms = ["blastp", "blastn", "blastx", "tblastn", "tblastx"];
+  if (algorithm && !validAlgorithms.includes(algorithm)) {
+    return res.status(400).json({ error: "Invalid BLAST algorithm" });
+  }
+
+  // Validate evalue
+  if (evalue !== undefined && (isNaN(evalue) || evalue < 0 || evalue > 1000)) {
+    return res
+      .status(400)
+      .json({ error: "E-value must be a number between 0 and 1000" });
+  }
+
+  // Validate maxTargetSeqs
+  if (
+    maxTargetSeqs !== undefined &&
+    (isNaN(maxTargetSeqs) || maxTargetSeqs < 1 || maxTargetSeqs > 5000)
+  ) {
+    return res
+      .status(400)
+      .json({ error: "Max target sequences must be between 1 and 5000" });
+  }
+
+  next();
+};
+
 // BLAST search endpoints
-app.post("/api/blast/submit", async (req, res) => {
+app.post("/api/blast/submit", validateBlastRequest, async (req, res) => {
   try {
     const {
       sequence,
@@ -66,7 +105,7 @@ app.post("/api/blast/submit", async (req, res) => {
       algorithm,
       evalue,
       maxTargetSeqs,
-      sequenceLength: sequence?.length
+      sequenceLength: sequence?.length,
     });
 
     if (!sequence) {
@@ -84,12 +123,11 @@ app.post("/api/blast/submit", async (req, res) => {
       gapExtend,
     });
 
-    res.json({ 
+    res.json({
       jobId,
       message: "BLAST search submitted successfully",
-      estimatedTime: "5-30 seconds"
+      estimatedTime: "5-30 seconds",
     });
-
   } catch (error) {
     console.error("BLAST submission error:", error);
     res.status(400).json({ error: error.message });
@@ -100,7 +138,7 @@ app.post("/api/blast/submit", async (req, res) => {
 app.get("/api/blast/status/:jobId", (req, res) => {
   try {
     const { jobId } = req.params;
-    
+
     if (!jobId || !ValidationUtils.sanitizeFileName(jobId)) {
       return res.status(400).json({ error: "Invalid job ID" });
     }
@@ -116,14 +154,16 @@ app.get("/api/blast/status/:jobId", (req, res) => {
     if (job.status === "running" && job.progress > 0) {
       const elapsed = Date.now() - job.startTime;
       const totalEstimated = elapsed / (job.progress / 100);
-      estimatedTimeRemaining = Math.max(0, Math.round((totalEstimated - elapsed) / 1000));
+      estimatedTimeRemaining = Math.max(
+        0,
+        Math.round((totalEstimated - elapsed) / 1000)
+      );
     }
 
     res.json({
       ...job,
-      estimatedTimeRemaining
+      estimatedTimeRemaining,
     });
-
   } catch (error) {
     console.error("Status check error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -134,7 +174,7 @@ app.get("/api/blast/status/:jobId", (req, res) => {
 app.get("/api/blast/results/:jobId", (req, res) => {
   try {
     const { jobId } = req.params;
-    
+
     if (!jobId || !ValidationUtils.sanitizeFileName(jobId)) {
       return res.status(400).json({ error: "Invalid job ID" });
     }
@@ -150,10 +190,10 @@ app.get("/api/blast/results/:jobId", (req, res) => {
     }
 
     if (job.status !== "completed") {
-      return res.status(202).json({ 
-        message: "Job not completed yet", 
+      return res.status(202).json({
+        message: "Job not completed yet",
         status: job.status,
-        progress: job.progress 
+        progress: job.progress,
       });
     }
 
@@ -162,7 +202,6 @@ app.get("/api/blast/results/:jobId", (req, res) => {
     }
 
     res.json(job.results);
-
   } catch (error) {
     console.error("Results retrieval error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -172,18 +211,27 @@ app.get("/api/blast/results/:jobId", (req, res) => {
 // List active jobs endpoint (for debugging)
 app.get("/api/blast/jobs", (req, res) => {
   try {
-    const jobs = Array.from(jobStore.values()).map(job => ({
+    const jobs = Array.from(jobStore.values()).map((job) => ({
       jobId: job.jobId,
       status: job.status,
       progress: job.progress,
       startTime: job.startTime,
-      parameters: job.parameters ? {
-        algorithm: job.parameters.algorithm,
-        sequenceLength: job.parameters.sequence?.length
-      } : null
+      lastAccessed: job.lastAccessed,
+      parameters: job.parameters
+        ? {
+            algorithm: job.parameters.algorithm,
+            sequenceLength: job.parameters.sequence?.length,
+          }
+        : null,
     }));
-    
-    res.json({ jobs, total: jobs.length });
+
+    const stats = jobStore.getStats();
+
+    res.json({
+      jobs,
+      stats,
+      total: jobs.length,
+    });
   } catch (error) {
     console.error("Jobs list error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -193,9 +241,31 @@ app.get("/api/blast/jobs", (req, res) => {
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error("Unhandled error:", error);
-  res.status(500).json({ 
-    error: "Internal server error",
-    message: process.env.NODE_ENV === "development" ? error.message : undefined
+
+  // Log the full stack trace for debugging
+  if (process.env.NODE_ENV === "development") {
+    console.error("Stack trace:", error.stack);
+  }
+
+  // Determine error type and send appropriate response
+  let statusCode = 500;
+  let message = "Internal server error";
+
+  if (error.name === "ValidationError") {
+    statusCode = 400;
+    message = error.message;
+  } else if (error.name === "UnauthorizedError") {
+    statusCode = 401;
+    message = "Unauthorized";
+  } else if (error.message.includes("BLAST")) {
+    statusCode = 503;
+    message = "BLAST service unavailable";
+  }
+
+  res.status(statusCode).json({
+    error: message,
+    details: process.env.NODE_ENV === "development" ? error.message : undefined,
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -206,18 +276,14 @@ app.use((req, res) => {
 
 // Cleanup old jobs periodically
 setInterval(() => {
-  const now = Date.now();
-  let cleanedCount = 0;
-
-  for (const [jobId, job] of jobStore.entries()) {
-    if (now - job.startTime > config.JOB_MAX_AGE) {
-      jobStore.delete(jobId);
-      cleanedCount++;
-    }
-  }
+  const cleanedCount = jobStore.cleanupOldJobs(config.JOB_MAX_AGE);
 
   if (cleanedCount > 0) {
     console.log(`Cleaned up ${cleanedCount} old jobs`);
+    const stats = jobStore.getStats();
+    console.log(
+      `Job store stats: ${stats.total} total, ${stats.running} running, ${stats.completed} completed`
+    );
   }
 }, config.JOB_CLEANUP_INTERVAL);
 
@@ -233,13 +299,17 @@ async function startServer() {
     await DatabaseManager.initializeDatabase();
     console.log("BLAST database initialization completed");
 
+    // Initialize database mappings for protein details
+    console.log("Initializing protein database mappings...");
+    await blastRunner.initializeDatabaseMappings();
+    console.log("Protein database mappings initialization completed");
+
     // Start server
     app.listen(config.PORT, () => {
       console.log(`HSNDB BLAST server running on port ${config.PORT}`);
       console.log(`API endpoint: http://localhost:${config.PORT}/api`);
       console.log(`Health check: http://localhost:${config.PORT}/api/health`);
     });
-
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);
@@ -247,13 +317,13 @@ async function startServer() {
 }
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully');
+process.on("SIGTERM", () => {
+  console.log("Received SIGTERM, shutting down gracefully");
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  console.log('Received SIGINT, shutting down gracefully');
+process.on("SIGINT", () => {
+  console.log("Received SIGINT, shutting down gracefully");
   process.exit(0);
 });
 
