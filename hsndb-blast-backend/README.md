@@ -5,17 +5,20 @@ This backend provides BLAST search functionality for the HSNDB protein database.
 ## Docker Deployment
 
 The backend is containerized and deployed on Render.com with:
+
 - Node.js 18 runtime
-- BLAST+ 2.12.0+ installed from official Debian packages  
+- BLAST+ 2.12.0+ installed from official Debian packages
 - Non-root user execution for security
 - Environment variable configuration
 
 ## Latest Changes
+
 - Fixed BLAST+ executable path issues in Docker environment
 - Added comprehensive debugging for deployment troubleshooting
 - Verified local Docker builds work correctly
 
 ## Status
+
 - ✅ Local Docker testing: BLAST+ accessible at /usr/bin/blastp
 - 🔄 Production deployment: Awaiting Render.com rebuild
 
@@ -37,13 +40,15 @@ The backend is containerized and deployed on Render.com with:
 ## Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Configure BLAST+ path in `config.js` if needed:
+
 ```javascript
-BLAST_BIN_PATH: "C:\\Program Files\\NCBI\\blast-2.16.0+\\bin\\"
+BLAST_BIN_PATH: "C:\\Program Files\\NCBI\\blast-2.16.0+\\bin\\";
 ```
 
 3. Place your FASTA file as `sequences.fasta` in the parent directory
@@ -51,6 +56,7 @@ BLAST_BIN_PATH: "C:\\Program Files\\NCBI\\blast-2.16.0+\\bin\\"
 ## Usage
 
 ### Start the server:
+
 ```bash
 npm start
 # or
@@ -58,6 +64,7 @@ node start.js
 ```
 
 ### Development mode:
+
 ```bash
 npm run dev
 ```
@@ -72,28 +79,33 @@ npm run dev
 - `GET /api/blast/jobs` - List active jobs
 
 ### Example BLAST Search:
+
 ```javascript
 // Submit search
-const response = await fetch('http://localhost:3001/api/blast/submit', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("http://localhost:3001/api/blast/submit", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    sequence: 'MVKVGVNGFGRIGRLVTRAAF...',
-    algorithm: 'blastp',
+    sequence: "MVKVGVNGFGRIGRLVTRAAF...",
+    algorithm: "blastp",
     evalue: 10,
-    maxTargetSeqs: 500
-  })
+    maxTargetSeqs: 500,
+  }),
 });
 
 const { jobId } = await response.json();
 
 // Check status
-const statusResponse = await fetch(`http://localhost:3001/api/blast/status/${jobId}`);
+const statusResponse = await fetch(
+  `http://localhost:3001/api/blast/status/${jobId}`
+);
 const status = await statusResponse.json();
 
 // Get results when completed
-if (status.status === 'completed') {
-  const resultsResponse = await fetch(`http://localhost:3001/api/blast/results/${jobId}`);
+if (status.status === "completed") {
+  const resultsResponse = await fetch(
+    `http://localhost:3001/api/blast/results/${jobId}`
+  );
   const results = await resultsResponse.json();
 }
 ```
@@ -111,6 +123,7 @@ Edit `config.js` to customize:
 ## Database Management
 
 The server automatically:
+
 1. Checks for existing BLAST database
 2. Creates new database from FASTA file if needed
 3. Validates database integrity
@@ -125,6 +138,7 @@ The server automatically:
 ## Production Deployment
 
 1. Set environment variables:
+
 ```bash
 export NODE_ENV=production
 export PORT=3001
@@ -132,6 +146,7 @@ export BLAST_BIN_PATH=/usr/local/bin/
 ```
 
 2. Use process manager (PM2 recommended):
+
 ```bash
 pm2 start server.js --name "hsndb-blast"
 ```
@@ -154,6 +169,7 @@ Check console output for detailed error messages and job status updates.
 ## API Documentation
 
 ### Submit BLAST Search
+
 ```
 POST /api/blast/submit
 Content-Type: application/json
@@ -178,6 +194,7 @@ Response:
 ```
 
 ### Job Status
+
 ```
 GET /api/blast/status/:jobId
 
@@ -192,6 +209,7 @@ Response:
 ```
 
 ### Results
+
 ```
 GET /api/blast/results/:jobId
 

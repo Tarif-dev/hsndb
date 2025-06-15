@@ -33,6 +33,11 @@ RUN test -f sequences.fasta || { echo "sequences.fasta not found!"; exit 1; }
 # Create necessary directories
 RUN mkdir -p temp blastdb
 
+# Build BLAST database from sequences.fasta
+RUN makeblastdb -in sequences.fasta -dbtype prot -out blastdb/hsndb -title "HSNDB" && \
+    ls -la blastdb/ && \
+    echo "BLAST database created successfully"
+
 # Set permissions
 RUN chmod -R 755 /app
 
