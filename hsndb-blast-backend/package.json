@@ -5,7 +5,13 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "docker:build": "docker build -t hsndb-blast-backend .",
+    "docker:run": "docker run -p 3001:10000 --env-file .env hsndb-blast-backend",
+    "docker:dev": "docker run -p 3001:10000 -v %cd%:/app --env-file .env hsndb-blast-backend"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",

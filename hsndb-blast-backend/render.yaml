@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: hsndb-blast-backend
+    env: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DOCKER_ENV
+        value: true
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGIN
+        value: https://hsndb-taupe.vercel.app
+      - key: SUPABASE_URL
+        value: https://zxnlfejhnxbrsnuoohfg.supabase.co
+      - key: SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4bmxmZWpobnhicnNudW9vaGZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxMzYyMTIsImV4cCI6MjA2NDcxMjIxMn0.Vn7ITpMVlmL_KUmL57gxi0QLuRsV2-kWMT-3j3o07fc
+      - key: BLAST_BIN_PATH
+        value: /usr/bin/
+    healthCheckPath: /api/health
