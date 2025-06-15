@@ -160,11 +160,12 @@ class BlastRunner {
       matrix,
       wordSize,
       gapOpen,
-      gapExtend,    } = params;
+      gapExtend,
+    } = params;
 
     // Construct the executable path - use system PATH if BLAST_BIN_PATH is empty
-    const executable = config.BLAST_BIN_PATH 
-      ? `"${path.join(config.BLAST_BIN_PATH, algorithm)}"` 
+    const executable = config.BLAST_BIN_PATH
+      ? `"${path.join(config.BLAST_BIN_PATH, algorithm)}"`
       : algorithm;
 
     let cmd = [
