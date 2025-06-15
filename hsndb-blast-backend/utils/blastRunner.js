@@ -162,11 +162,7 @@ class BlastRunner {
       gapOpen,
       gapExtend,
     } = params;
-
-    // Construct the executable path - use system PATH if BLAST_BIN_PATH is empty
-    const executable = config.BLAST_BIN_PATH
-      ? `"${path.join(config.BLAST_BIN_PATH, algorithm)}"`
-      : algorithm;
+    const executable = `"${path.join(config.BLAST_BIN_PATH, algorithm)}"`;
 
     let cmd = [
       executable,

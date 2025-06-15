@@ -17,10 +17,9 @@ module.exports = {
   // Supabase Configuration
   SUPABASE_URL:
     process.env.SUPABASE_URL || "https://your-supabase-url.supabase.co",
-  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "your-supabase-anon-key",
-  // BLAST Configuration - Auto-detect BLAST+ path in Docker
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "your-supabase-anon-key", // BLAST Configuration - Use /usr/bin/ for Docker
   BLAST_BIN_PATH: isDocker
-    ? "" // Let system PATH find blastp
+    ? "/usr/bin/"
     : process.env.BLAST_BIN_PATH ||
       (process.platform === "win32"
         ? "C:\\Program Files\\NCBI\\blast-2.16.0+\\bin\\"
