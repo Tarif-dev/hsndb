@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # Verify BLAST+ installation and check location
-RUN blastp -version && which blastp
+RUN blastp -version && which blastp && which makeblastdb && ls -la /usr/bin/blast*
 
 # Copy package files first (for better caching)
 COPY package*.json ./
