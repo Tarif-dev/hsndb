@@ -38,7 +38,18 @@ RUN chmod -R 755 /app
 
 # Create non-root user for security
 RUN useradd -m -u 1001 appuser && chown -R appuser:appuser /app
+
+# Ensure appuser can access BLAST+ binaries
+RUN chmod +x /usr/bin/blast* && \
+    ls -la /usr/bin/blast* && \
+    which blastp && \
+    su appuser -c "which blastp" && \
+    su appuser -c "blastp -version"
+
 USER appuser
+
+# Ensure PATH is set for appuser
+ENV PATH="/usr/bin:$PATH"
 
 # Expose port
 EXPOSE 10000
