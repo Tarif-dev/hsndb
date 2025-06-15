@@ -26,19 +26,19 @@ const blastRunner = new BlastRunner(jobStore);
 // Health check endpoint
 app.get("/api/health", async (req, res) => {
   try {
-    const { exec } = require('child_process');
-    
+    const { exec } = require("child_process");
+
     // Check BLAST+ availability
     const blastVersion = await new Promise((resolve) => {
-      exec('blastp -version', (error, stdout) => {
-        if (error) resolve('Not available');
-        else resolve(stdout.split('\n')[0]);
+      exec("blastp -version", (error, stdout) => {
+        if (error) resolve("Not available");
+        else resolve(stdout.split("\n")[0]);
       });
     });
 
     // Check if running in Docker
     const isDocker = config.IS_DOCKER;
-    
+
     res.json({
       status: "healthy",
       timestamp: new Date().toISOString(),
@@ -50,16 +50,16 @@ app.get("/api/health", async (req, res) => {
         platform: process.platform,
         port: config.PORT,
         blast_version: blastVersion,
-        blast_path: config.BLAST_BIN_PATH
+        blast_path: config.BLAST_BIN_PATH,
       },
       uptime: process.uptime(),
-      memory: process.memoryUsage()
+      memory: process.memoryUsage(),
     });
   } catch (error) {
-    res.status(500).json({ 
-      status: "error", 
+    res.status(500).json({
+      status: "error",
       error: error.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 });
