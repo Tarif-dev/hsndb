@@ -57,10 +57,11 @@ export interface BlastJobStatus {
 
 // Enhanced BLAST API implementation with better error handling and retry logic
 export class BlastAPI {
-  private static baseUrl =
-    process.env.NODE_ENV === "development"
+  private static baseUrl = 
+    import.meta.env.VITE_API_BASE_URL || 
+    (process.env.NODE_ENV === "development"
       ? "http://localhost:3001/api"
-      : "/api";
+      : "https://hsndb-blast-backend.onrender.com/api");
 
   private static async fetchWithRetry(
     url: string,
