@@ -1,7 +1,23 @@
-
 # HSNDB BLAST Backend
 
-A robust BLAST search backend for the HSNDB (S-nitrosylated proteins database) built with Node.js and NCBI BLAST+.
+This backend provides BLAST search functionality for the HSNDB protein database.
+
+## Docker Deployment
+
+The backend is containerized and deployed on Render.com with:
+- Node.js 18 runtime
+- BLAST+ 2.12.0+ installed from official Debian packages  
+- Non-root user execution for security
+- Environment variable configuration
+
+## Latest Changes
+- Fixed BLAST+ executable path issues in Docker environment
+- Added comprehensive debugging for deployment troubleshooting
+- Verified local Docker builds work correctly
+
+## Status
+- ✅ Local Docker testing: BLAST+ accessible at /usr/bin/blastp
+- 🔄 Production deployment: Awaiting Render.com rebuild
 
 ## Features
 

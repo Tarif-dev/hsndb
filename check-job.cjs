@@ -23,5 +23,5 @@ function checkJob(jobId) {
   });
 }
 
-// Check the job from the previous test
-checkJob('67ce2a98-f0f5-41d6-9a0e-9f4ccc4e12e8');
+// Check the job from the latest test
+checkJob('966ea7e0-0a93-4197-819b-264baa093d71');
