@@ -160,11 +160,14 @@ class BlastRunner {
       matrix,
       wordSize,
       gapOpen,
-      gapExtend,    } = params;
+      gapExtend,
+    } = params;
 
     // Construct the executable path - avoid double quoting issues
     const executablePath = path.join(config.BLAST_BIN_PATH, algorithm);
-    const executable = executablePath.includes(' ') ? `"${executablePath}"` : executablePath;
+    const executable = executablePath.includes(" ")
+      ? `"${executablePath}"`
+      : executablePath;
 
     let cmd = [
       executable,
@@ -211,6 +214,14 @@ class BlastRunner {
 
   executeBlastCommand(command) {
     return new Promise((resolve, reject) => {
+      // Add debugging information
+      console.log(`🔍 Executing BLAST command: ${command}`);
+      console.log(`🔍 Current working directory: ${process.cwd()}`);
+      console.log(`🔍 PATH environment: ${process.env.PATH}`);
+      console.log(
+        `🔍 Docker environment detected: ${require("../config").IS_DOCKER}`
+      );
+
       exec(
         command,
         {
@@ -219,11 +230,12 @@ class BlastRunner {
         },
         (error, stdout, stderr) => {
           if (error) {
-            console.error("BLAST execution failed:", error);
-            console.error("stderr:", stderr);
+            console.error("❌ BLAST execution failed:", error);
+            console.error("❌ stderr:", stderr);
+            console.error("❌ stdout:", stdout);
             reject(new Error(`BLAST execution failed: ${error.message}`));
           } else {
-            console.log("BLAST completed successfully");
+            console.log("✅ BLAST completed successfully");
             resolve(stdout);
           }
         }
