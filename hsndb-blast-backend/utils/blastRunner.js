@@ -160,9 +160,11 @@ class BlastRunner {
       matrix,
       wordSize,
       gapOpen,
-      gapExtend,
-    } = params;
-    const executable = `"${path.join(config.BLAST_BIN_PATH, algorithm)}"`;
+      gapExtend,    } = params;
+
+    // Construct the executable path - avoid double quoting issues
+    const executablePath = path.join(config.BLAST_BIN_PATH, algorithm);
+    const executable = executablePath.includes(' ') ? `"${executablePath}"` : executablePath;
 
     let cmd = [
       executable,
