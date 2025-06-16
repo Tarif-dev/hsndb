@@ -57,17 +57,31 @@ export interface BlastJobStatus {
 
 // Enhanced BLAST API implementation with better error handling and retry logic
 export class BlastAPI {
-  private static baseUrl =
-    import.meta.env.MODE === "development"
-      ? "http://localhost:3001/api"
-      : import.meta.env.VITE_BLAST_API_URL ||
-        "https://hsndb-backend-production.up.railway.app/api";
+  private static getBaseUrl() {
+    const isDevelopment = import.meta.env.MODE === "development";
+    const envApiUrl = import.meta.env.VITE_BLAST_API_URL;
+
+    if (isDevelopment) {
+      return "http://localhost:3001/api";
+    }
+
+    if (envApiUrl) {
+      // Ensure the URL ends with /api
+      return envApiUrl.endsWith("/api") ? envApiUrl : `${envApiUrl}/api`;
+    }
+
+    // Fallback URL
+    return "https://hsndb-backend-production.up.railway.app/api";
+  }
+
+  private static baseUrl = BlastAPI.getBaseUrl();
 
   // Debug: Log the API URL being used
   static {
     console.log(`🔗 BLAST API URL: ${BlastAPI.baseUrl}`);
     console.log(`🌐 Environment: ${import.meta.env.MODE}`);
     console.log(`🔧 VITE_BLAST_API_URL: ${import.meta.env.VITE_BLAST_API_URL}`);
+    console.log(`🎯 Final Base URL: ${BlastAPI.baseUrl}`);
   }
 
   private static async fetchWithRetry(
@@ -110,14 +124,21 @@ export class BlastAPI {
     try {
       const healthUrl = `${this.baseUrl}/health`;
       console.log(`🔍 Checking server health: ${healthUrl}`);
+      console.log(`📡 Base URL: ${this.baseUrl}`);
+      console.log(`🌐 Full health endpoint: ${healthUrl}`);
 
       const response = await this.fetchWithRetry(healthUrl);
 
       console.log(`✅ Health check response status: ${response.status}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`📊 Health check response:`, data);
+      }
       return response.ok;
     } catch (error) {
       console.error("❌ Server health check failed:", error);
       console.error("🔗 Attempted URL:", `${this.baseUrl}/health`);
+      console.error("📍 Base URL:", this.baseUrl);
       return false;
     }
   }
