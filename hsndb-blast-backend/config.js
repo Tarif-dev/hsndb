@@ -23,16 +23,17 @@ module.exports = {
 
   // Database Configuration
   FASTA_FILE: path.join(__dirname, "sequences.fasta"), // Updated to use local copy
-
   // Server Configuration
   PORT: process.env.PORT || 3001,
   CORS_ORIGIN:
     process.env.NODE_ENV === "production"
-      ? [
-          "https://hsndb-site.vercel.app",
-          "https://hsndb-site-git-main-yourusername.vercel.app", // Replace with your actual Vercel URLs
-          process.env.CORS_ORIGIN,
-        ].filter(Boolean)
+      ? process.env.CORS_ORIGIN
+        ? process.env.CORS_ORIGIN.split(",").map((url) => url.trim())
+        : [
+            "https://hsndb-site.vercel.app",
+            "https://hsndb-taupe.vercel.app",
+            "https://hsndb-site-git-main-yourusername.vercel.app",
+          ]
       : "*",
 
   // BLAST Parameters

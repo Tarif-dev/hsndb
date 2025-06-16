@@ -106,13 +106,18 @@ export class BlastAPI {
 
     throw new Error("Max retries exceeded");
   }
-
   static async checkServerHealth(): Promise<boolean> {
     try {
-      const response = await this.fetchWithRetry(`${this.baseUrl}/health`);
+      const healthUrl = `${this.baseUrl}/health`;
+      console.log(`🔍 Checking server health: ${healthUrl}`);
+
+      const response = await this.fetchWithRetry(healthUrl);
+
+      console.log(`✅ Health check response status: ${response.status}`);
       return response.ok;
     } catch (error) {
-      console.error("Server health check failed:", error);
+      console.error("❌ Server health check failed:", error);
+      console.error("🔗 Attempted URL:", `${this.baseUrl}/health`);
       return false;
     }
   }
