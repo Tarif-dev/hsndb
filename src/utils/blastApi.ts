@@ -61,7 +61,7 @@ export class BlastAPI {
     process.env.NODE_ENV === "development"
       ? "http://localhost:3001/api"
       : import.meta.env.VITE_BLAST_API_URL ||
-        "https://your-railway-app.railway.app/api";
+        "https://hsndb-backend-production.up.railway.app/api";
 
   private static async fetchWithRetry(
     url: string,
