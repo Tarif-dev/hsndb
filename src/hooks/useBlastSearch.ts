@@ -23,7 +23,8 @@ export const useBlastSearch = () => {
     const checkHealth = async () => {
       try {
         const isHealthy = await BlastAPI.checkServerHealth();
-        setServerStatus(isHealthy ? "online" : "offline");        if (!isHealthy) {
+        setServerStatus(isHealthy ? "online" : "offline");
+        if (!isHealthy) {
           toast({
             title: "Server Connection Issue",
             description:
@@ -50,7 +51,8 @@ export const useBlastSearch = () => {
       }
 
       // Check server status first
-      const isHealthy = await BlastAPI.checkServerHealth();      if (!isHealthy) {
+      const isHealthy = await BlastAPI.checkServerHealth();
+      if (!isHealthy) {
         throw new Error(
           "BLAST server is not responding. Please check your internet connection and try again."
         );

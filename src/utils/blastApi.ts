@@ -161,7 +161,8 @@ export class BlastAPI {
       console.log("BLAST search submitted successfully:", result);
       return result.jobId;
     } catch (error) {
-      console.error("Error submitting BLAST search:", error);      if (error instanceof TypeError && error.message.includes("fetch")) {
+      console.error("Error submitting BLAST search:", error);
+      if (error instanceof TypeError && error.message.includes("fetch")) {
         throw new Error(
           "Cannot connect to BLAST server. Please check your internet connection and try again."
         );
