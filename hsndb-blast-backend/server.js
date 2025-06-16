@@ -312,15 +312,11 @@ async function startServer() {
     // Initialize database mappings for protein details
     console.log("🔄 Initializing protein database mappings...");
     await blastRunner.initializeDatabaseMappings();
-    console.log("✅ Protein database mappings initialization completed");
-
-    // Start server
-    const server = app.listen(config.PORT, () => {
+    console.log("✅ Protein database mappings initialization completed"); // Start server
+    const server = app.listen(config.PORT, "0.0.0.0", () => {
       console.log(`🎉 HSNDB BLAST server running on port ${config.PORT}`);
-      console.log(`🔗 API endpoint: http://localhost:${config.PORT}/api`);
-      console.log(
-        `❤️  Health check: http://localhost:${config.PORT}/api/health`
-      );
+      console.log(`🔗 API endpoint: http://0.0.0.0:${config.PORT}/api`);
+      console.log(`❤️  Health check: http://0.0.0.0:${config.PORT}/api/health`);
 
       if (process.env.NODE_ENV === "production") {
         console.log(`🚀 Production server ready for Railway deployment!`);
