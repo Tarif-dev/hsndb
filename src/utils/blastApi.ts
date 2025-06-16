@@ -60,7 +60,8 @@ export class BlastAPI {
   private static baseUrl =
     process.env.NODE_ENV === "development"
       ? "http://localhost:3001/api"
-      : "/api";
+      : import.meta.env.VITE_BLAST_API_URL ||
+        "https://your-railway-app.railway.app/api";
 
   private static async fetchWithRetry(
     url: string,

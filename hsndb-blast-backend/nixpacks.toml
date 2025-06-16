@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_18", "ncbi-blast+"]
+
+[phases.install]
+cmd = "npm ci --only=production"
+
+[phases.build]
+cmd = "echo 'No build step required'"
+
+[start]
+cmd = "node server.js"

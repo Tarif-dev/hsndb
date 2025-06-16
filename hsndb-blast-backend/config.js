@@ -17,15 +17,23 @@ module.exports = {
     process.env.BLAST_BIN_PATH ||
     (process.platform === "win32"
       ? "C:\\Program Files\\NCBI\\blast-2.16.0+\\bin\\"
-      : "/usr/local/bin/"),
+      : "/usr/bin/"), // Alpine Linux standard path
   BLAST_DB_PATH: path.join(__dirname, "blastdb", "hsndb"),
   TEMP_DIR: path.join(__dirname, "temp"),
+
   // Database Configuration
-  FASTA_FILE: path.join(__dirname, "..", "sequences.fasta"), // Corrected filename without space
+  FASTA_FILE: path.join(__dirname, "sequences.fasta"), // Updated to use local copy
 
   // Server Configuration
   PORT: process.env.PORT || 3001,
-  CORS_ORIGIN: process.env.NODE_ENV === "production" ? false : "*",
+  CORS_ORIGIN:
+    process.env.NODE_ENV === "production"
+      ? [
+          "https://hsndb-site.vercel.app",
+          "https://hsndb-site-git-main-yourusername.vercel.app", // Replace with your actual Vercel URLs
+          process.env.CORS_ORIGIN,
+        ].filter(Boolean)
+      : "*",
 
   // BLAST Parameters
   DEFAULT_PARAMS: {

@@ -12,6 +12,33 @@ class BlastRunner {
     this.jobStore = jobStore;
     this.databaseMapper = new BlastDatabaseMapper();
     this.mappingsInitialized = false;
+    this.blastBinPath = null;
+  }
+
+  // Find BLAST binary path dynamically (especially for Railway/Nix)
+  async findBlastBinPath() {
+    if (this.blastBinPath) return this.blastBinPath;
+
+    return new Promise((resolve) => {
+      if (process.platform === "win32") {
+        this.blastBinPath = config.BLAST_BIN_PATH;
+        resolve(this.blastBinPath);
+        return;
+      }
+
+      // For Unix-like systems (Railway/Nix)
+      exec("which blastp", (error, stdout) => {
+        if (!error && stdout.trim()) {
+          this.blastBinPath = path.dirname(stdout.trim()) + "/";
+          console.log(`🔍 Found BLAST binaries at: ${this.blastBinPath}`);
+        } else {
+          // Fallback to config
+          this.blastBinPath = config.BLAST_BIN_PATH;
+          console.log(`📁 Using configured BLAST path: ${this.blastBinPath}`);
+        }
+        resolve(this.blastBinPath);
+      });
+    });
   }
 
   // Initialize database mappings once at startup
@@ -33,8 +60,10 @@ class BlastRunner {
     }
     return this.mappingsInitialized;
   }
-
   async submitJob(params) {
+    // Initialize BLAST path
+    await this.findBlastBinPath();
+
     // Validate sequence
     const sequenceValidation = ValidationUtils.validateSequence(
       params.sequence
@@ -162,8 +191,7 @@ class BlastRunner {
       gapOpen,
       gapExtend,
     } = params;
-
-    const executable = `"${path.join(config.BLAST_BIN_PATH, algorithm)}"`;
+    const executable = `"${path.join(this.blastBinPath, algorithm)}"`;
 
     let cmd = [
       executable,

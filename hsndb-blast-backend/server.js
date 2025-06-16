@@ -290,28 +290,54 @@ setInterval(() => {
 // Initialize server
 async function startServer() {
   try {
-    console.log("Initializing HSNDB BLAST Server...");
-    console.log(`BLAST database path: ${config.BLAST_DB_PATH}`);
-    console.log(`BLAST binaries path: ${config.BLAST_BIN_PATH}`);
-    console.log(`FASTA file path: ${config.FASTA_FILE}`);
+    console.log("🚀 Initializing HSNDB BLAST Server...");
+    console.log(`🗂️  BLAST database path: ${config.BLAST_DB_PATH}`);
+    console.log(`🔧 BLAST binaries path: ${config.BLAST_BIN_PATH}`);
+    console.log(`📄 FASTA file path: ${config.FASTA_FILE}`);
+    console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`🔒 CORS Origin: ${JSON.stringify(config.CORS_ORIGIN)}`);
+
+    // Check if FASTA file exists
+    const fs = require("fs");
+    if (!fs.existsSync(config.FASTA_FILE)) {
+      console.error(`❌ FASTA file not found: ${config.FASTA_FILE}`);
+      throw new Error("FASTA file not found");
+    }
+    console.log(`✅ FASTA file found: ${config.FASTA_FILE}`);
 
     // Initialize BLAST database
     await DatabaseManager.initializeDatabase();
-    console.log("BLAST database initialization completed");
+    console.log("✅ BLAST database initialization completed");
 
     // Initialize database mappings for protein details
-    console.log("Initializing protein database mappings...");
+    console.log("🔄 Initializing protein database mappings...");
     await blastRunner.initializeDatabaseMappings();
-    console.log("Protein database mappings initialization completed");
+    console.log("✅ Protein database mappings initialization completed");
 
     // Start server
-    app.listen(config.PORT, () => {
-      console.log(`HSNDB BLAST server running on port ${config.PORT}`);
-      console.log(`API endpoint: http://localhost:${config.PORT}/api`);
-      console.log(`Health check: http://localhost:${config.PORT}/api/health`);
+    const server = app.listen(config.PORT, () => {
+      console.log(`🎉 HSNDB BLAST server running on port ${config.PORT}`);
+      console.log(`🔗 API endpoint: http://localhost:${config.PORT}/api`);
+      console.log(
+        `❤️  Health check: http://localhost:${config.PORT}/api/health`
+      );
+
+      if (process.env.NODE_ENV === "production") {
+        console.log(`🚀 Production server ready for Railway deployment!`);
+      }
+    });
+
+    // Handle server startup errors
+    server.on("error", (error) => {
+      if (error.code === "EADDRINUSE") {
+        console.error(`❌ Port ${config.PORT} is already in use`);
+      } else {
+        console.error("❌ Server error:", error);
+      }
+      process.exit(1);
     });
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error("❌ Failed to start server:", error);
     process.exit(1);
   }
 }
