@@ -4,10 +4,14 @@ npm-debug.log
 .gitignore
 README.md
 .env
+.env.*
 .nyc_output
 coverage
-.env.production
 temp/*
 !temp/.gitkeep
 blastdb/*.p*
 *.log
+railway-*.json
+install-blast.sh
+start.sh
+deploy-simple.sh

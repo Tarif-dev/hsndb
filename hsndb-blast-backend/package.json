@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:production": "chmod +x install-blast.sh && ./install-blast.sh && node server.js",
     "start:railway": "chmod +x start.sh && ./start.sh",
     "dev": "nodemon server.js",
     "build": "echo 'No build step required'"

@@ -1,11 +1,14 @@
-# Use official Node.js runtime as base image
-FROM node:18-alpine
+# Use Ubuntu-based Node.js image (has ncbi-blast+ package)
+FROM node:18-slim
 
-# Install BLAST+ and other dependencies
-RUN apk add --no-cache \
-    blast+ \
-    bash \
-    curl
+# Install system dependencies and BLAST+
+RUN apt-get update && \
+    apt-get install -y \
+    ncbi-blast+ \
+    curl \
+    wget \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -13,21 +16,26 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install Node.js dependencies
 RUN npm ci --only=production
 
 # Copy application code
 COPY . .
 
-# Create temp directory
-RUN mkdir -p temp
+# Create necessary directories
+RUN mkdir -p /app/temp /app/blastdb
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV BLAST_BIN_PATH=/usr/bin/
+ENV PORT=3001
 
 # Expose port
 EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3001/api/health || exit 1
+    CMD curl -f http://localhost:3001/api/health || exit 1
 
 # Start the application
 CMD ["node", "server.js"]
