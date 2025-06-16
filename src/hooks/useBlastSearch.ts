@@ -23,13 +23,11 @@ export const useBlastSearch = () => {
     const checkHealth = async () => {
       try {
         const isHealthy = await BlastAPI.checkServerHealth();
-        setServerStatus(isHealthy ? "online" : "offline");
-
-        if (!isHealthy) {
+        setServerStatus(isHealthy ? "online" : "offline");        if (!isHealthy) {
           toast({
-            title: "Server Offline",
+            title: "Server Connection Issue",
             description:
-              "BLAST server is not responding. Please ensure it's running on port 3001.",
+              "Unable to connect to BLAST server. Please check your internet connection.",
             variant: "destructive",
           });
         }
@@ -52,10 +50,9 @@ export const useBlastSearch = () => {
       }
 
       // Check server status first
-      const isHealthy = await BlastAPI.checkServerHealth();
-      if (!isHealthy) {
+      const isHealthy = await BlastAPI.checkServerHealth();      if (!isHealthy) {
         throw new Error(
-          "BLAST server is not responding. Please ensure it's running on port 3001."
+          "BLAST server is not responding. Please check your internet connection and try again."
         );
       }
 

@@ -58,10 +58,17 @@ export interface BlastJobStatus {
 // Enhanced BLAST API implementation with better error handling and retry logic
 export class BlastAPI {
   private static baseUrl =
-    process.env.NODE_ENV === "development"
+    import.meta.env.MODE === "development"
       ? "http://localhost:3001/api"
       : import.meta.env.VITE_BLAST_API_URL ||
         "https://hsndb-backend-production.up.railway.app/api";
+
+  // Debug: Log the API URL being used
+  static {
+    console.log(`🔗 BLAST API URL: ${BlastAPI.baseUrl}`);
+    console.log(`🌐 Environment: ${import.meta.env.MODE}`);
+    console.log(`🔧 VITE_BLAST_API_URL: ${import.meta.env.VITE_BLAST_API_URL}`);
+  }
 
   private static async fetchWithRetry(
     url: string,
@@ -154,10 +161,9 @@ export class BlastAPI {
       console.log("BLAST search submitted successfully:", result);
       return result.jobId;
     } catch (error) {
-      console.error("Error submitting BLAST search:", error);
-      if (error instanceof TypeError && error.message.includes("fetch")) {
+      console.error("Error submitting BLAST search:", error);      if (error instanceof TypeError && error.message.includes("fetch")) {
         throw new Error(
-          "Cannot connect to BLAST server. Please ensure the server is running on port 3001."
+          "Cannot connect to BLAST server. Please check your internet connection and try again."
         );
       }
       throw error;

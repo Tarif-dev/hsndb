@@ -5,12 +5,15 @@
 ## 📋 **Next Steps to Complete Setup:**
 
 ### Step 1: Test Your Backend
+
 ```bash
 test-backend-powershell.bat
 ```
+
 This will test all your Railway endpoints.
 
 ### Step 2: Update Vercel Environment Variables
+
 1. Go to: https://vercel.com/dashboard
 2. Click on your project (hsndb-site)
 3. Go to Settings → Environment Variables
@@ -21,21 +24,24 @@ This will test all your Railway endpoints.
 5. Click "Save"
 
 ### Step 3: Update CORS in Railway
+
 1. Go to: https://railway.app/dashboard
 2. Click your project: `42935e65-1de3-4e5d-b8b3-90327eff2a45`
 3. Click "Variables" tab
 4. Add/Update:
-   - **Name:** `CORS_ORIGIN`  
+   - **Name:** `CORS_ORIGIN`
    - **Value:** `https://hsndb-site.vercel.app,https://hsndb-taupe.vercel.app`
 5. Save changes
 
 ### Step 4: Redeploy Vercel
+
 1. Go to Vercel Dashboard → Your Project
 2. Go to "Deployments" tab
 3. Click "..." on latest deployment
 4. Click "Redeploy"
 
 ### Step 5: Test Complete System
+
 1. Visit your Vercel site: `https://hsndb-site.vercel.app`
 2. Navigate to BLAST search page
 3. Enter a protein sequence
