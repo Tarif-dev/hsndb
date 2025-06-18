@@ -11,11 +11,13 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProteinData } from "@/hooks/useProteinData";
+import { useProteinDisorder } from "@/hooks/useProteinDisorder";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ProteinViewer3D from "@/components/ProteinViewer3D";
 import NetworkVisualization from "@/components/NetworkVisualization";
 import FastaSequence from "@/components/FastaSequence";
+import ProteinDisorderPlot from "@/components/ProteinDisorderPlot";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,13 +65,19 @@ const ProteinDetails = () => {
     },
     enabled: !!id,
   });
-
   // Fetch real protein data from external APIs
   const {
     processedData,
     stringInteractions,
     isLoading: isLoadingExternalData,
   } = useProteinData(protein?.uniprot_id || "", !!protein?.uniprot_id);
+
+  // Fetch disorder prediction data
+  const {
+    data: disorderData,
+    isLoading: isLoadingDisorderData,
+    error: disorderError,
+  } = useProteinDisorder(protein?.uniprot_id || null, protein?.hsn_id || null);
 
   const handleCopyId = () => {
     if (protein?.hsn_id) {
@@ -338,10 +346,12 @@ const ProteinDetails = () => {
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {" "}
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="structure">Structure</TabsTrigger>
+              <TabsTrigger value="disorder">Disorder</TabsTrigger>
               <TabsTrigger value="function">Function</TabsTrigger>
               <TabsTrigger value="interactions">Interactions</TabsTrigger>
             </TabsList>
@@ -491,7 +501,7 @@ const ProteinDetails = () => {
                         >
                           NCBI Gene Database
                           <ExternalLink className="h-3 w-3" />
-                        </a>
+                        </a>{" "}
                         <a
                           href={`https://www.genecards.org/cgi-bin/carddisp.pl?gene=${protein.gene_name}`}
                           target="_blank"
@@ -505,6 +515,128 @@ const ProteinDetails = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Disorder Summary */}
+                {disorderData && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Disorder Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Overall Disorder
+                        </label>
+                        <div className="mt-2">
+                          {(() => {
+                            const avgDisorder =
+                              disorderData.scores.reduce((a, b) => a + b, 0) /
+                              disorderData.scores.length;
+                            const disorderPercentage = (
+                              avgDisorder * 100
+                            ).toFixed(1);
+                            return (
+                              <Badge
+                                variant={
+                                  avgDisorder > 0.5
+                                    ? "destructive"
+                                    : avgDisorder > 0.3
+                                    ? "secondary"
+                                    : "outline"
+                                }
+                                className="text-sm"
+                              >
+                                {disorderPercentage}% Average Disorder
+                              </Badge>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Disordered Regions
+                        </label>
+                        <div className="mt-2">
+                          {(() => {
+                            const disorderedResidues =
+                              disorderData.scores.filter(
+                                (score) => score >= 0.5
+                              ).length;
+                            const disorderRegions = (() => {
+                              const regions: Array<{
+                                start: number;
+                                end: number;
+                              }> = [];
+                              let currentRegion: {
+                                start: number;
+                                end: number;
+                              } | null = null;
+
+                              disorderData.scores.forEach((score, index) => {
+                                if (score >= 0.5) {
+                                  if (!currentRegion) {
+                                    currentRegion = {
+                                      start: index + 1,
+                                      end: index + 1,
+                                    };
+                                  } else {
+                                    currentRegion.end = index + 1;
+                                  }
+                                } else {
+                                  if (
+                                    currentRegion &&
+                                    currentRegion.end - currentRegion.start >= 9
+                                  ) {
+                                    regions.push(currentRegion);
+                                  }
+                                  currentRegion = null;
+                                }
+                              });
+
+                              if (
+                                currentRegion &&
+                                currentRegion.end - currentRegion.start >= 9
+                              ) {
+                                regions.push(currentRegion);
+                              }
+
+                              return regions;
+                            })();
+
+                            return (
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {disorderedResidues} disordered residues
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {disorderRegions.length} disorder regions
+                                </Badge>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Switch to disorder tab
+                            const disorderTab =
+                              document.querySelector('[value="disorder"]');
+                            if (disorderTab instanceof HTMLElement) {
+                              disorderTab.click();
+                            }
+                          }}
+                        >
+                          View Detailed Plot
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </TabsContent>
 
@@ -628,7 +760,53 @@ const ProteinDetails = () => {
                     )}
                   </CardContent>
                 </Card>
-              </div>
+              </div>{" "}
+            </TabsContent>
+
+            <TabsContent value="disorder" className="space-y-6">
+              {disorderData ? (
+                <ProteinDisorderPlot
+                  data={disorderData}
+                  height={500}
+                  className="w-full"
+                />
+              ) : isLoadingDisorderData ? (
+                <Card>
+                  <CardContent className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                      <p className="text-sm text-muted-foreground">
+                        Loading disorder prediction data...
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Disorder Prediction Not Available</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">
+                        Disorder prediction data is not available for this
+                        protein.
+                      </p>
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <p>• UniProt ID: {protein?.uniprot_id || "N/A"}</p>
+                        <p>• HSN ID: {protein?.hsn_id}</p>
+                      </div>
+                      {disorderError && (
+                        <div className="mt-4 p-3 bg-red-50 rounded-lg">
+                          <p className="text-sm text-red-600">
+                            Error loading disorder data: {disorderError.message}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             <TabsContent value="function" className="space-y-6">
