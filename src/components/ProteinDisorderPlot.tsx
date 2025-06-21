@@ -10,6 +10,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface DisorderData {
   protein_id: string;
@@ -103,8 +109,7 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
 
     return regions;
   };
-
-  const exportPlot = () => {
+  const exportPNG = () => {
     if (!svgRef.current) return;
 
     const svgElement = svgRef.current;
@@ -131,6 +136,61 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
     };
 
     img.src = "data:image/svg+xml;base64," + btoa(svgString);
+  };
+
+  const exportCSV = () => {
+    const header = ["position", "residue", "disorder_score"];
+    const csvData = data.scores.map((score, i) => {
+      const residue = data.sequence ? data.sequence[i] : "";
+      return [i + 1, residue, score].join(",");
+    });
+
+    const csvContent = [header.join(","), ...csvData].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const downloadLink = document.createElement("a");
+    downloadLink.href = url;
+    downloadLink.download = `${
+      data.gene_name || data.uniprot_id
+    }_disorder_scores.csv`;
+    downloadLink.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  const exportJSON = () => {
+    // Create a structured JSON object with disorder data
+    const jsonData = {
+      protein_id: data.protein_id,
+      uniprot_id: data.uniprot_id,
+      gene_name: data.gene_name,
+      protein_name: data.protein_name,
+      length: data.length,
+      average_disorder: averageDisorder,
+      max_disorder: maxDisorder,
+      disordered_residues: disorderedResidues,
+      disorder_regions: disorderRegions,
+      scores: data.scores.map((score, i) => ({
+        position: i + 1,
+        residue: data.sequence?.[i] || "",
+        score: score,
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(jsonData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+
+    const downloadLink = document.createElement("a");
+    downloadLink.href = url;
+    downloadLink.download = `${
+      data.gene_name || data.uniprot_id
+    }_disorder_data.json`;
+    downloadLink.click();
+
+    URL.revokeObjectURL(url);
   };
 
   const resetZoom = () => {
@@ -348,7 +408,6 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
 
     g.append("g").attr("class", "brush").call(brush);
   }, [data, selectedRegion, height, innerWidth, innerHeight]);
-
   const disorderRegions = getDisorderRegions();
   const averageDisorder =
     data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
@@ -385,11 +444,26 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
               <Button variant="outline" size="sm" onClick={resetZoom}>
                 <RotateCcw className="h-4 w-4 mr-1" />
                 Reset
-              </Button>
-              <Button variant="outline" size="sm" onClick={exportPlot}>
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
+              </Button>{" "}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-1" />
+                    Export
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={exportPNG}>
+                    Export as PNG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportCSV}>
+                    Export as CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportJSON}>
+                    Export as JSON
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardHeader>
