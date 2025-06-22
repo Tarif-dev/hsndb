@@ -1,4 +1,3 @@
-
 // filepath: d:\Nitro\src\components\BrowseInterface.tsx
 import React, { useState, useEffect } from "react";
 import {
@@ -273,10 +272,12 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                       onChange={(e) => setSortBy(e.target.value)}
                       className="text-sm border border-gray-300 rounded px-2 py-1"
                     >
+                      {" "}
                       <option value="relevance">Relevance</option>
                       <option value="hsn_id">HSN ID</option>
                       <option value="gene_name">Gene Name</option>
                       <option value="total_sites">Total Sites</option>
+                      <option value="protein_length">Length</option>
                     </select>
                   </div>
                   <div className="flex items-center space-x-2">

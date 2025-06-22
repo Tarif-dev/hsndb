@@ -74,9 +74,7 @@ export const useProteins = (params: UseProteinsParams = {}) => {
             query = query.gte("total_sites", 11);
             break;
         }
-      }
-
-      // Apply cancer types filter
+      } // Apply cancer types filter
       if (filters.cancerTypes && filters.cancerTypes.length > 0) {
         // Use the overlaps operator to check if any of the selected cancer types
         // are present in the cancer_types array column
@@ -84,8 +82,16 @@ export const useProteins = (params: UseProteinsParams = {}) => {
       }
 
       // Apply sorting
-      const ascending = sortBy !== "relevance";
+      let ascending = true;
       const orderColumn = sortBy === "relevance" ? "hsn_id" : sortBy;
+
+      // For total_sites and protein_length, sort in descending order (larger numbers first)
+      if (sortBy === "total_sites" || sortBy === "protein_length") {
+        ascending = false;
+      } else if (sortBy === "relevance") {
+        ascending = false; // For relevance, also sort in descending order
+      }
+
       query = query.order(orderColumn, { ascending });
 
       // Apply pagination
