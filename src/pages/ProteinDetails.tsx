@@ -643,12 +643,19 @@ const ProteinDetails = () => {
             <TabsContent value="structure" className="space-y-6">
               {/* 3D Protein Structure - Full width with integrated details and structural properties below */}
               <div className="space-y-6">
+                {" "}
                 <ProteinViewer3D
                   uniprotId={protein.uniprot_id}
                   alphafoldId={protein.alphafold_id}
                   proteinName={protein.protein_name}
+                  nitrosylationSites={
+                    protein.positions_of_nitrosylation
+                      ? protein.positions_of_nitrosylation
+                          .split(",")
+                          .map(Number)
+                      : []
+                  }
                 />
-
                 {/* Structural Properties - Now displayed below the 3D viewer */}
                 <Card>
                   <CardHeader>

@@ -27,6 +27,7 @@ interface ProteinViewer3DProps {
   uniprotId: string;
   alphafoldId: string;
   proteinName: string;
+  nitrosylationSites?: number[]; // Add this prop to accept nitrosylation positions
 }
 
 interface ResidueInfo {
@@ -41,6 +42,7 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
   uniprotId,
   alphafoldId,
   proteinName,
+  nitrosylationSites = [], // Default to empty array if not provided
 }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
   const [viewer, setViewer] = useState<any>(null);
@@ -247,13 +249,14 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
         } catch {
           throw new Error("No 3D structure found for this protein");
         }
-      }
-
-      // Set initial style
+      } // Set initial style
       newViewer.setStyle({}, { cartoon: { color: "spectrum" } });
 
       // Add optimized hover interactions
       setupHoverInteractions(newViewer);
+
+      // Highlight nitrosylation sites
+      highlightNitrosylationSites(newViewer);
 
       newViewer.zoomTo();
       newViewer.render();
@@ -330,24 +333,39 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
 
         const styleConfig: any = {};
         styleConfig[newStyle] = { color: colorScheme };
-
         viewer.setStyle({}, styleConfig);
         setupHoverInteractions(viewer);
+        // Re-apply nitrosylation site highlighting after style change
+        highlightNitrosylationSites(viewer);
         viewer.render();
       })
       .catch(() => {
         // Handle error silently as we already have error handling above
       });
   };
-
   const updateColorScheme = (newColorScheme: string) => {
     if (!viewer) return;
 
     setColorScheme(newColorScheme);
-    const styleConfig: any = {};
-    styleConfig[style] = { color: newColorScheme };
 
-    viewer.setStyle({}, styleConfig);
+    if (newColorScheme === "nitrosylation") {
+      // For nitrosylation scheme, set base color to light grey for contrast
+      const baseStyleConfig: any = {};
+      baseStyleConfig[style] = { color: "#CCCCCC" }; // Light grey base
+      viewer.setStyle({}, baseStyleConfig);
+
+      // Then highlight the nitrosylation sites with bright color
+      highlightNitrosylationSites(viewer);
+    } else {
+      // For other color schemes, apply normally
+      const styleConfig: any = {};
+      styleConfig[style] = { color: newColorScheme };
+      viewer.setStyle({}, styleConfig);
+
+      // Re-apply nitrosylation site highlighting
+      highlightNitrosylationSites(viewer);
+    }
+
     viewer.render();
   };
 
@@ -374,6 +392,53 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
     } else {
       viewerRef.current.requestFullscreen();
     }
+  };
+
+  // Highlight nitrosylation sites in the model
+  const highlightNitrosylationSites = (viewerInstance: any) => {
+    if (!viewerInstance || nitrosylationSites.length === 0) return;
+
+    // Bright red color for highlighting nitrosylation sites
+    const highlightColor = "#FF3333";
+
+    // Add a visual highlight for each nitrosylation site
+    nitrosylationSites.forEach((position) => {
+      // Select the residue at the specific position
+      const sele = { resi: position };
+
+      if (style === "surface") {
+        // For surface style, color the surface at the position
+        viewerInstance.addSurface(
+          window.$3Dmol.SurfaceType.VDW,
+          {
+            opacity: 0.8,
+            color: highlightColor,
+          },
+          sele
+        );
+      } else if (style === "cartoon") {
+        // For cartoon style, add a sphere at the CA atom position (alpha carbon)
+        // and color the cartoon at that position
+        viewerInstance.addSphere({
+          center: { resi: position },
+          radius: 1.5,
+          color: highlightColor,
+          opacity: 0.8,
+        });
+
+        // Also color the cartoon at that position
+        const styleSpec: any = {};
+        styleSpec[style] = { color: highlightColor };
+        viewerInstance.setStyle(sele, styleSpec);
+      } else {
+        // For other styles (stick, sphere, line), just color the residue
+        const styleSpec: any = {};
+        styleSpec[style] = { color: highlightColor };
+        viewerInstance.setStyle(sele, styleSpec);
+      }
+    });
+
+    viewerInstance.render();
   };
 
   if (error) {
@@ -407,16 +472,25 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center gap-2">
+                {" "}
                 3D Protein Structure
                 <Tooltip>
                   <TooltipTrigger>
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>
-                      Hover over the structure to see amino acid details in the
-                      side panel
-                    </p>
+                    <div className="space-y-1 max-w-xs">
+                      <p>
+                        Hover over the structure to see amino acid details in
+                        the side panel
+                      </p>
+                      {nitrosylationSites.length > 0 && (
+                        <p className="text-xs text-red-500">
+                          S-Nitrosylation sites are highlighted in red when
+                          using the "Highlight S-Nitrosylation" color option
+                        </p>
+                      )}
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               </CardTitle>
@@ -456,11 +530,20 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    {" "}
                     <SelectItem value="spectrum">Spectrum</SelectItem>
                     <SelectItem value="chain">By Chain</SelectItem>
                     <SelectItem value="residue">By Residue</SelectItem>
                     <SelectItem value="white">White</SelectItem>
                     <SelectItem value="grey">Grey</SelectItem>
+                    {nitrosylationSites.length > 0 && (
+                      <SelectItem value="nitrosylation">
+                        Highlight S-Nitrosylation
+                      </SelectItem>
+                    )}
+                    <SelectItem value="nitrosylation">
+                      Nitrosylation Sites
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -509,6 +592,7 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                   <CardContent>
                     {hoveredResidue ? (
                       <div className="space-y-4">
+                        {" "}
                         {/* Header with badges */}
                         <div className="flex flex-wrap gap-2">
                           <Badge variant="secondary" className="text-sm">
@@ -528,8 +612,12 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                               hoveredResidue.resn as keyof typeof aminoAcidProperties
                             ]?.symbol || hoveredResidue.resn}
                           </Badge>
+                          {nitrosylationSites.includes(hoveredResidue.resi) && (
+                            <Badge variant="destructive" className="text-xs">
+                              S-Nitrosylation Site
+                            </Badge>
+                          )}
                         </div>
-
                         {/* Amino acid info */}
                         {aminoAcidProperties[
                           hoveredResidue.resn as keyof typeof aminoAcidProperties
