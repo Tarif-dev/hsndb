@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -50,6 +51,7 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [style, setStyle] = useState("cartoon");
   const [colorScheme, setColorScheme] = useState("spectrum");
+  const [highlightNitrosylation, setHighlightNitrosylation] = useState(true); // Enable by default
   const [hoveredResidue, setHoveredResidue] = useState<ResidueInfo | null>(
     null
   );
@@ -348,23 +350,13 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
 
     setColorScheme(newColorScheme);
 
-    if (newColorScheme === "nitrosylation") {
-      // For nitrosylation scheme, set base color to light grey for contrast
-      const baseStyleConfig: any = {};
-      baseStyleConfig[style] = { color: "#CCCCCC" }; // Light grey base
-      viewer.setStyle({}, baseStyleConfig);
+    // Apply the new color scheme
+    const styleConfig: any = {};
+    styleConfig[style] = { color: newColorScheme };
+    viewer.setStyle({}, styleConfig);
 
-      // Then highlight the nitrosylation sites with bright color
-      highlightNitrosylationSites(viewer);
-    } else {
-      // For other color schemes, apply normally
-      const styleConfig: any = {};
-      styleConfig[style] = { color: newColorScheme };
-      viewer.setStyle({}, styleConfig);
-
-      // Re-apply nitrosylation site highlighting
-      highlightNitrosylationSites(viewer);
-    }
+    // Re-apply nitrosylation site highlighting if it's enabled
+    highlightNitrosylationSites(viewer);
 
     viewer.render();
   };
@@ -393,10 +385,14 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
       viewerRef.current.requestFullscreen();
     }
   };
-
   // Highlight nitrosylation sites in the model
   const highlightNitrosylationSites = (viewerInstance: any) => {
-    if (!viewerInstance || nitrosylationSites.length === 0) return;
+    if (
+      !viewerInstance ||
+      nitrosylationSites.length === 0 ||
+      !highlightNitrosylation
+    )
+      return;
 
     // Bright red color for highlighting nitrosylation sites
     const highlightColor = "#FF3333";
@@ -441,6 +437,28 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
     viewerInstance.render();
   };
 
+  const toggleNitrosylationHighlighting = () => {
+    if (!viewer) return;
+
+    // Toggle the state
+    setHighlightNitrosylation(!highlightNitrosylation);
+
+    if (!highlightNitrosylation) {
+      // If turning on, apply highlighting
+      const baseStyleConfig: any = {};
+      baseStyleConfig[style] = { color: colorScheme };
+      viewer.setStyle({}, baseStyleConfig);
+      highlightNitrosylationSites(viewer);
+    } else {
+      // If turning off, reapply the current color scheme without highlighting
+      const styleConfig: any = {};
+      styleConfig[style] = { color: colorScheme };
+      viewer.setStyle({}, styleConfig);
+    }
+
+    viewer.render();
+  };
+
   if (error) {
     return (
       <Card>
@@ -483,11 +501,11 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                       <p>
                         Hover over the structure to see amino acid details in
                         the side panel
-                      </p>
+                      </p>{" "}
                       {nitrosylationSites.length > 0 && (
                         <p className="text-xs text-red-500">
-                          S-Nitrosylation sites are highlighted in red when
-                          using the "Highlight S-Nitrosylation" color option
+                          S-Nitrosylation sites are highlighted in red by
+                          default. Use the toggle to show/hide the highlights.
                         </p>
                       )}
                     </div>
@@ -522,33 +540,44 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium">Color:</label>
+                <label className="text-sm font-medium">Color:</label>{" "}
                 <Select value={colorScheme} onValueChange={updateColorScheme}>
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {" "}
                     <SelectItem value="spectrum">Spectrum</SelectItem>
                     <SelectItem value="chain">By Chain</SelectItem>
                     <SelectItem value="residue">By Residue</SelectItem>
                     <SelectItem value="white">White</SelectItem>
                     <SelectItem value="grey">Grey</SelectItem>
-                    {nitrosylationSites.length > 0 && (
-                      <SelectItem value="nitrosylation">
-                        Highlight S-Nitrosylation
-                      </SelectItem>
-                    )}
-                    <SelectItem value="nitrosylation">
-                      Nitrosylation Sites
-                    </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="flex gap-1">
+              </div>{" "}
+              {nitrosylationSites.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">
+                    S-Nitrosylation:
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={highlightNitrosylation}
+                      onCheckedChange={toggleNitrosylationHighlighting}
+                    />
+                    {highlightNitrosylation ? (
+                      <span className="text-xs text-red-500 font-medium">
+                        Highlighted
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Hidden
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-1 ml-auto">
                 <Button variant="outline" size="sm" onClick={resetView}>
                   <RotateCcw className="h-4 w-4" />
                 </Button>
