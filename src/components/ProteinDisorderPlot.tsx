@@ -26,6 +26,7 @@ interface DisorderData {
   gene_name: string | null;
   protein_name: string | null;
   sequence: string | null;
+  percentageDisorder?: number; // Added property for percentage of disordered residues
 }
 
 interface ProteinDisorderPlotProps {
@@ -168,6 +169,7 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
       protein_name: data.protein_name,
       length: data.length,
       average_disorder: averageDisorder,
+      percentage_disorder: percentageDisorder,
       max_disorder: maxDisorder,
       disordered_residues: disorderedResidues,
       disorder_regions: disorderRegions,
@@ -409,8 +411,16 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
     g.append("g").attr("class", "brush").call(brush);
   }, [data, selectedRegion, height, innerWidth, innerHeight]);
   const disorderRegions = getDisorderRegions();
+  // Calculate average disorder (mean of all scores)
   const averageDisorder =
     data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
+  // Calculate percentage of disordered residues (use pre-calculated value if available)
+  const percentageDisorder =
+    data.percentageDisorder !== undefined
+      ? data.percentageDisorder
+      : (data.scores.filter((score) => score >= disorderThreshold).length /
+          data.scores.length) *
+        100;
   const maxDisorder = Math.max(...data.scores);
   const disorderedResidues = data.scores.filter(
     (score) => score >= disorderThreshold
@@ -468,8 +478,8 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
           </div>
         </CardHeader>
         <CardContent>
-          {/* Statistics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {/* Statistics */}{" "}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
             <div className="text-center p-3 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
                 {data.length}
@@ -500,8 +510,13 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
               </div>
               <div className="text-sm text-muted-foreground">Avg Disorder</div>
             </div>
+            <div className="text-center p-3 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">
+                {percentageDisorder.toFixed(1)}%
+              </div>
+              <div className="text-sm text-muted-foreground">% Disordered</div>
+            </div>
           </div>
-
           {/* Main Plot */}
           <div ref={containerRef} className="relative">
             <svg
@@ -534,7 +549,6 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
               </div>
             )}
           </div>
-
           {/* Legend */}
           <div className="flex items-center justify-center gap-6 mt-4 text-sm">
             <div className="flex items-center gap-2">
@@ -550,7 +564,6 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
               <span>Disorder Region</span>
             </div>
           </div>
-
           {/* Region Information */}
           {disorderRegions.length > 0 && (
             <div className="mt-6">
@@ -585,7 +598,6 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
               </div>
             </div>
           )}
-
           {selectedRegion && (
             <div className="mt-4 p-3 bg-blue-50 rounded-lg">
               <div className="text-sm font-medium">Selected Region</div>
