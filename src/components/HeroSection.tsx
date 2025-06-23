@@ -151,17 +151,17 @@ const HeroSection = () => {
             <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 shadow-lg">
               <div className="flex items-center justify-center mb-3">
                 <Heart className="h-8 w-8 text-red-600" />
-              </div>
+              </div>{" "}
               <div className="text-3xl font-bold text-gray-900 mb-1">
                 {statisticsLoading ? (
                   <Loader2 className="h-8 w-8 animate-spin mx-auto" />
                 ) : statisticsError ? (
                   <span className="text-red-500 text-lg">Error</span>
                 ) : (
-                  formatNumber(statistics?.cancerAssociatedSites || 0)
+                  formatNumber(statistics?.cancerAssociatedProteins || 0)
                 )}
               </div>
-              <div className="text-gray-600">Cancer-Associated Sites</div>
+              <div className="text-gray-600">Cancer-Associated Proteins</div>
             </div>
 
             <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 shadow-lg">
