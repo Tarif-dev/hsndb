@@ -20,6 +20,7 @@ const Navigation = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const navItems = [
     { label: "Browse", href: "/browse", icon: Search },
+    { label: "Motif Proteins", href: "/motif-browse", icon: Search },
     { label: "BLAST", href: "/blast", icon: Zap },
     { label: "Blogs", href: "/blogs", icon: Newspaper },
   ];

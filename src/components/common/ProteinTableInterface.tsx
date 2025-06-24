@@ -1,4 +1,3 @@
-// filepath: d:\Nitro\src\components\BrowseInterface.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,6 +10,7 @@ import {
   X,
   ExternalLink,
   Eye,
+  InfoIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
   Table,
@@ -37,14 +38,56 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { useProteins } from "@/hooks/useProteins";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useCancerTypes } from "@/hooks/useCancerTypes";
+import { ErrorBoundary } from "react-error-boundary";
 
-interface BrowseInterfaceProps {
-  initialQuery?: string;
+// Define the common properties shared by different protein types
+interface BaseProtein {
+  id: string;
+  hsn_id: string;
+  gene_name: string | null;
+  uniprot_id: string | null;
+  protein_name: string | null;
+  protein_length: number | null;
+  alphafold_id: string | null;
+  cancer_causing: boolean | null;
+  cancer_types: string[] | null;
+  total_sites?: number | null;
+  positions_of_nitrosylation?: string | null;
 }
 
-const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
+// Props interface for the ProteinTableInterface component
+interface ProteinTableInterfaceProps {
+  initialQuery?: string;
+  title: string;
+  description: string;
+  useHook: (params: any) => {
+    data?: {
+      data: any[];
+      count: number;
+      isMockData?: boolean;
+    };
+    isLoading: boolean;
+    error: Error | null;
+  };
+  badgeText?: string;
+  tooltipText?: string;
+}
+
+const ProteinTableInterface = ({
+  initialQuery = "",
+  title,
+  description,
+  useHook,
+  badgeText,
+  tooltipText,
+}: ProteinTableInterfaceProps): React.ReactElement => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [debouncedSearchQuery, setDebouncedSearchQuery] =
@@ -52,6 +95,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortBy, setSortBy] = useState("hsn_id");
+  const [renderError, setRenderError] = useState<Error | null>(null);
   const [filters, setFilters] = useState({
     cancerSites: [] as string[],
     totalSites: [] as string[],
@@ -71,13 +115,12 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  // Fetch proteins data
+  // Fetch proteins data using the provided hook
   const {
     data: proteinsResult,
     isLoading,
     error,
-  } = useProteins({
+  } = useHook({
     searchQuery: debouncedSearchQuery,
     filters: {
       cancerCausing:
@@ -92,10 +135,30 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
     page: currentPage,
     itemsPerPage,
   });
+
+  // Add defensive checks for data
   const results = proteinsResult?.data || [];
   const totalResults = proteinsResult?.count || 0;
-  const totalPages = Math.ceil(totalResults / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(totalResults / itemsPerPage));
+  const isMockData = proteinsResult?.isMockData || false;
 
+  // Add effect to catch and log any rendering errors
+  useEffect(() => {
+    try {
+      console.log("ProteinTableInterface rendering with:", {
+        resultsLength: results?.length || 0,
+        totalResults,
+        isLoading,
+        error: error?.message,
+      });
+
+      // Clear any previous errors
+      setRenderError(null);
+    } catch (err) {
+      console.error("Error in ProteinTableInterface render cycle:", err);
+      setRenderError(err as Error);
+    }
+  }, [results, totalResults, isLoading, error]);
   // Create filter options with dynamic cancer types
   const filterOptions = {
     cancerSites: ["Yes", "No"],
@@ -112,6 +175,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
     }));
     setCurrentPage(1);
   };
+
   const clearAllFilters = () => {
     setFilters({
       cancerSites: [],
@@ -127,7 +191,6 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
       0
     );
   };
-
   const getCancerBadgeVariant = (cancerCausing: boolean) => {
     return cancerCausing ? "destructive" : "secondary";
   };
@@ -137,35 +200,86 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
     setCurrentPage(1);
   };
 
-  const handleRowClick = (proteinId: string) => {
-    navigate(`/protein/${proteinId}`);
+  const handleSort = (column: string) => {
+    setSortBy(column);
+    setCurrentPage(1); // Reset to first page on sort change
   };
 
-  useEffect(() => {
-    setSearchQuery(initialQuery);
-  }, [initialQuery]);
+  const handleRowClick = (id: string) => {
+    navigate(`/protein/${id}`);
+  };
+  // If there's a render error, show a simplified view
+  if (renderError) {
+    return (
+      <section className="py-8 bg-gray-50 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
+            <p className="text-gray-600">{description}</p>
+          </div>
 
-  if (error) {
-    console.error("Error loading proteins:", error);
+          <Card className="border-red-200">
+            <CardHeader>
+              <CardTitle className="text-red-600">
+                Something went wrong
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">
+                We encountered an error while trying to display the proteins.
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                Error details: {renderError.message}
+              </p>
+              <div className="bg-gray-50 p-4 rounded mb-4 text-left overflow-auto max-h-48">
+                <h4 className="font-mono text-xs mb-2">Debug Information:</h4>
+                <pre className="text-xs font-mono whitespace-pre-wrap">
+                  {JSON.stringify(renderError, null, 2)}
+                </pre>
+              </div>
+              <Button onClick={() => window.location.reload()}>
+                Reload page
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    );
   }
-
   return (
     <section className="py-8 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Browse Human S-nitrosylation Database
-          </h1>
+          {isMockData && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-md text-yellow-800">
+              <p className="flex items-center text-sm">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Using mock data for demonstration purposes
+              </p>
+            </div>
+          )}
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{title}</h1>
           <p className="text-gray-600">
-            Explore and filter through {totalResults.toLocaleString()} human
-            S-nitrosylated proteins
+            {description}{" "}
+            {!isLoading && `(${totalResults.toLocaleString()} proteins)`}
           </p>
         </div>
-
         <div className="space-y-6">
-          {/* Search and Controls */}
+          {/* Search and Filter Card */}
           <Card>
+            {" "}
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row gap-4 mb-4">
                 <div className="flex-1 relative">
@@ -186,7 +300,8 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                 >
                   {isLoading ? "Searching..." : "Search"}
                 </Button>
-              </div>{" "}
+              </div>
+
               {/* Filter and Control Options */}
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 {/* Left side: Filter, Sort by, Show */}
@@ -220,6 +335,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                             </Button>
                           )}
                         </div>
+
                         {Object.entries(filterOptions).map(
                           ([category, options]) => (
                             <div key={category}>
@@ -273,7 +389,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                         )}
                       </div>
                     </DropdownMenuContent>
-                  </DropdownMenu>
+                  </DropdownMenu>{" "}
                   {/* Sort by dropdown */}
                   <div className="flex items-center space-x-2">
                     <label className="text-sm text-gray-600 whitespace-nowrap">
@@ -292,11 +408,9 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                       <option value="protein_length">Length</option>
                     </select>
                   </div>
-                  {/* Show dropdown */}
+                  {/* Items per page */}
                   <div className="flex items-center space-x-2">
-                    <label className="text-sm text-gray-600 whitespace-nowrap">
-                      Show:
-                    </label>
+                    <span className="text-sm text-gray-500">Show:</span>
                     <select
                       value={itemsPerPage}
                       onChange={(e) => setItemsPerPage(Number(e.target.value))}
@@ -307,7 +421,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                       <option value={50}>50</option>
                       <option value={100}>100</option>
                     </select>
-                  </div>{" "}
+                  </div>
                 </div>
 
                 {/* Right side: Analyze button */}
@@ -316,11 +430,14 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                     <BarChart3 className="h-4 w-4 mr-2" />
                     Analyze
                   </Button>
+                  <Button variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export
+                  </Button>
                 </div>
               </div>
             </CardContent>
-          </Card>
-
+          </Card>{" "}
           {/* Results Header */}
           <div className="flex justify-between items-center">
             <p className="text-gray-600">
@@ -330,8 +447,10 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                 <>
                   Showing{" "}
                   <span className="font-semibold">
-                    {(currentPage - 1) * itemsPerPage + 1}-
-                    {Math.min(currentPage * itemsPerPage, totalResults)}
+                    {totalResults === 0
+                      ? 0
+                      : (currentPage - 1) * itemsPerPage + 1}
+                    -{Math.min(currentPage * itemsPerPage, totalResults)}
                   </span>{" "}
                   of{" "}
                   <span className="font-semibold">
@@ -341,8 +460,24 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                 </>
               )}
             </p>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-green-50 text-green-800">
+                {badgeText}
+              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <InfoIcon className="h-4 w-4 text-gray-500" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p className="max-w-xs">{tooltipText}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </div>
-
           {/* Results Table */}
           <Card>
             <CardContent className="p-0">
@@ -356,10 +491,56 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                   <p className="text-red-600">
                     Error loading data. Please try again.
                   </p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    {error.message || "An unknown error occurred"}
+                  </p>
+                  <div className="bg-gray-50 p-4 rounded text-left overflow-auto max-h-48 mt-4">
+                    <h4 className="font-mono text-xs mb-2">
+                      Debug Information:
+                    </h4>
+                    <pre className="text-xs font-mono whitespace-pre-wrap">
+                      {JSON.stringify(
+                        { error, query: debouncedSearchQuery, filters },
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="mt-3"
+                    onClick={() => window.location.reload()}
+                  >
+                    Reload page
+                  </Button>
+                </div>
+              ) : results.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-gray-500 mb-4">
+                    No proteins found. Try adjusting your search or filters.
+                  </p>
+                  <div className="flex justify-center gap-2">
+                    {" "}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchQuery("");
+                        clearAllFilters();
+                        setSortBy("hsn_id");
+                      }}
+                    >
+                      Clear all filters
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => window.location.reload()}
+                    >
+                      Refresh page
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="overflow-x-auto w-full">
-                  {" "}
                   <Table className="w-full table-auto">
                     <TableHeader>
                       <TableRow className="bg-gray-50">
@@ -422,7 +603,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                           <TableCell className="max-w-[300px] border-r border-gray-200">
                             <div
                               className="truncate"
-                              title={result.protein_name}
+                              title={result.protein_name || ""}
                             >
                               {result.protein_name}
                             </div>
@@ -442,15 +623,15 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                             </a>
                           </TableCell>
                           <TableCell className="text-center font-semibold border-r border-gray-200">
-                            {result.total_sites}
+                            {result.total_sites ?? "-"}
                           </TableCell>
                           <TableCell className="font-mono text-sm border-r border-gray-200">
-                            {result.positions_of_nitrosylation}
+                            {result.positions_of_nitrosylation ?? "-"}
                           </TableCell>
                           <TableCell className="border-r border-gray-200">
                             <Badge
                               variant={getCancerBadgeVariant(
-                                result.cancer_causing
+                                result.cancer_causing ?? false
                               )}
                             >
                               {result.cancer_causing ? "Y" : "N"}
@@ -481,8 +662,7 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
                 </div>
               )}
             </CardContent>
-          </Card>
-
+          </Card>{" "}
           {/* Pagination */}
           {!isLoading && totalPages > 1 && (
             <div className="flex justify-center">
@@ -546,4 +726,4 @@ const BrowseInterface = ({ initialQuery = "" }: BrowseInterfaceProps) => {
   );
 };
 
-export default BrowseInterface;
+export default ProteinTableInterface;

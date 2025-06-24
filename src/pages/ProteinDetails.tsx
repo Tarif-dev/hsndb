@@ -44,7 +44,6 @@ const ProteinDetails = () => {
   const { toast } = useToast();
   const [fastaModalOpen, setFastaModalOpen] = React.useState(false);
   const [fastaData, setFastaData] = React.useState<string | null>(null);
-
   const {
     data: protein,
     isLoading,
@@ -54,14 +53,34 @@ const ProteinDetails = () => {
     queryFn: async () => {
       if (!id) throw new Error("No protein ID provided");
 
-      const { data, error } = await supabase
+      // First try to find in experimentally validated proteins
+      const { data: expData, error: expError } = await supabase
         .from("proteins")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) throw error;
-      return data;
+      if (!expError && expData) {
+        // Add a source field to indicate this is an experimentally validated protein
+        return { ...expData, source: "experimental" };
+      }
+
+      // If not found in experimental proteins, check motif-based proteins
+      const { data: motifData, error: motifError } = await supabase
+        .from("motif_based_proteins")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (motifError) throw motifError;
+
+      // Add a source field and map motif positions to the same structure as nitrosylation positions
+      return {
+        ...motifData,
+        positions_of_nitrosylation: motifData.motif_positions,
+        total_sites: motifData.total_motifs,
+        source: "motif",
+      };
     },
     enabled: !!id,
   });
@@ -234,7 +253,7 @@ const ProteinDetails = () => {
             <p className="text-muted-foreground mb-4">
               The requested protein could not be found.
             </p>
-            <Button onClick={() => navigate("/browse")}>Back to Browse</Button>
+            <Button onClick={() => navigate(-1)}>Back</Button>
           </div>
         </div>
       </div>
@@ -249,22 +268,31 @@ const ProteinDetails = () => {
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="flex items-center gap-4 mb-6">
+              {" "}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/browse")}
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to Browse
+                Back
               </Button>
             </div>
 
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+              {" "}
               <div className="flex-1">
-                <h1 className="text-4xl font-bold text-foreground mb-2">
-                  {protein.protein_name}
-                </h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-4xl font-bold text-foreground">
+                    {protein.protein_name}
+                  </h1>
+                  {protein.source === "motif" && (
+                    <Badge className="bg-green-100 text-green-800">
+                      Motif-Based
+                    </Badge>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-3 mb-4">
                   <h2 className="text-lg text-muted-foreground">
@@ -285,17 +313,28 @@ const ProteinDetails = () => {
                 <FastaSequence hsnId={protein.hsn_id} />
 
                 <div className="flex flex-wrap gap-3 mb-6 mt-4">
-                  <Badge
-                    variant={
-                      protein.cancer_causing ? "destructive" : "secondary"
-                    }
-                  >
-                    {protein.cancer_causing
-                      ? "Cancer Associated"
-                      : "Non-Cancer Associated"}
-                  </Badge>
+                  {" "}
+                  {protein.source === "experimental" ? (
+                    <Badge
+                      variant={
+                        (protein as any).cancer_causing
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {(protein as any).cancer_causing
+                        ? "Cancer Associated"
+                        : "Non-Cancer Associated"}
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">
+                      Unknown Cancer Association
+                    </Badge>
+                  )}
                   <Badge variant="outline">
-                    {protein.total_sites} Nitrosylation Sites
+                    {protein.source === "experimental"
+                      ? `${protein.total_sites} Nitrosylation Sites`
+                      : `${protein.total_sites} Motif Occurrences`}
                   </Badge>
                   <Badge variant="outline">
                     {protein.protein_length} amino acids
@@ -361,7 +400,19 @@ const ProteinDetails = () => {
                 {/* Basic Information */}
                 <Card className="lg:col-span-2">
                   <CardHeader>
-                    <CardTitle>Basic Information</CardTitle>
+                    {" "}
+                    <CardTitle className="flex items-center justify-between">
+                      Basic Information
+                      {protein.source === "experimental" ? (
+                        <Badge className="ml-2 bg-blue-100 text-blue-800 hover:bg-blue-200">
+                          Experimentally Validated
+                        </Badge>
+                      ) : (
+                        <Badge className="ml-2 bg-green-100 text-green-800 hover:bg-green-200">
+                          Motif-Based Prediction
+                        </Badge>
+                      )}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -406,16 +457,13 @@ const ProteinDetails = () => {
                         </a>
                       </div>
                     </div>
-
                     <Separator />
-
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">
                         Protein Name
                       </label>
                       <p className="text-lg mt-1">{protein.protein_name}</p>
                     </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-muted-foreground">
@@ -424,20 +472,23 @@ const ProteinDetails = () => {
                         <p className="text-lg">
                           {protein.protein_length} amino acids
                         </p>
-                      </div>
+                      </div>{" "}
                       <div>
                         <label className="text-sm font-medium text-muted-foreground">
-                          Total Nitrosylation Sites
+                          {protein.source === "experimental"
+                            ? "Total Nitrosylation Sites"
+                            : "Total Motif Occurrences"}
                         </label>
                         <p className="text-lg font-semibold">
                           {protein.total_sites}
                         </p>
                       </div>
-                    </div>
-
+                    </div>{" "}
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">
-                        Nitrosylation Positions
+                        {protein.source === "experimental"
+                          ? "Nitrosylation Positions"
+                          : "Motif Positions"}
                       </label>
                       <p className="text-lg font-mono mt-1 bg-muted p-2 rounded">
                         {protein.positions_of_nitrosylation}
@@ -445,48 +496,68 @@ const ProteinDetails = () => {
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Cancer Information */}
+                {/* Cancer Information */}{" "}
                 <Card>
                   <CardHeader>
                     <CardTitle>Cancer Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Cancer Association
-                      </label>
-                      <div className="mt-2">
-                        <Badge
-                          variant={
-                            protein.cancer_causing ? "destructive" : "secondary"
-                          }
-                          className="text-sm"
-                        >
-                          {protein.cancer_causing ? "Yes" : "No"}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    {protein.cancer_types &&
-                      protein.cancer_types.length > 0 && (
+                    {protein.source === "experimental" ? (
+                      <>
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">
-                            Associated Cancer Types
+                            Cancer Association
                           </label>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            {protein.cancer_types.map((type, index) => (
-                              <Badge
-                                key={index}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {type}
-                              </Badge>
-                            ))}
+                          <div className="mt-2">
+                            <Badge
+                              variant={
+                                (protein as any).cancer_causing
+                                  ? "destructive"
+                                  : "secondary"
+                              }
+                              className="text-sm"
+                            >
+                              {(protein as any).cancer_causing ? "Yes" : "No"}
+                            </Badge>
                           </div>
                         </div>
-                      )}
+
+                        {(protein as any).cancer_types &&
+                          (protein as any).cancer_types.length > 0 && (
+                            <div>
+                              <label className="text-sm font-medium text-muted-foreground">
+                                Associated Cancer Types
+                              </label>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {(protein as any).cancer_types.map(
+                                  (type: string, index: number) => (
+                                    <Badge
+                                      key={index}
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {type}
+                                    </Badge>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          )}
+                      </>
+                    ) : (
+                      <div>
+                        <p className="text-gray-600">
+                          Cancer association data is not available for
+                          motif-based predicted proteins. These proteins are
+                          identified based on the presence of the{" "}
+                          <span className="font-mono bg-gray-100 text-gray-800 px-1 rounded">
+                            [I/L]-X-C-X₂-[D/E]
+                          </span>{" "}
+                          motif and have not been experimentally validated for
+                          cancer association yet.
+                        </p>
+                      </div>
+                    )}
 
                     <div className="pt-4">
                       <h4 className="font-medium mb-2">
@@ -515,7 +586,6 @@ const ProteinDetails = () => {
                     </div>
                   </CardContent>
                 </Card>
-
                 {/* Disorder Summary */}
                 {disorderData && (
                   <Card>
@@ -937,7 +1007,9 @@ const ProteinDetails = () => {
                         Functional Impact
                       </label>
                       <p className="text-sm mt-1">
-                        S-nitrosylation at {protein.total_sites} site(s) may
+                        {protein.source === "experimental"
+                          ? `S-nitrosylation at ${protein.total_sites} site(s) may`
+                          : `${protein.total_sites} motif occurrence(s) may`}
                         regulate protein activity, localization, and
                         protein-protein interactions.
                       </p>

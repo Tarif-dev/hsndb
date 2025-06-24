@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Browse from "./pages/Browse";
+import MotifBrowse from "./pages/MotifBrowse";
 import ProteinDetails from "./pages/ProteinDetails";
 import BlastSearch from "./pages/BlastSearch";
 import NotFound from "./pages/NotFound";
@@ -21,6 +22,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/browse" element={<Browse />} />
+          <Route path="/motif-browse" element={<MotifBrowse />} />
           <Route path="/blast" element={<BlastSearch />} />
           <Route path="/protein/:id" element={<ProteinDetails />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

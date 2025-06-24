@@ -105,6 +105,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      motif_based_proteins: {
+        Row: {
+          alphafold_id: string | null;
+          created_at: string;
+          gene_name: string | null;
+          hsn_id: string;
+          id: string;
+          motif_positions: string;
+          protein_length: number | null;
+          protein_name: string | null;
+          total_motifs: number | null;
+          uniprot_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          alphafold_id?: string | null;
+          created_at?: string;
+          gene_name?: string | null;
+          hsn_id: string;
+          id?: string;
+          motif_positions: string;
+          protein_length?: number | null;
+          protein_name?: string | null;
+          total_motifs?: number | null;
+          uniprot_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          alphafold_id?: string | null;
+          created_at?: string;
+          gene_name?: string | null;
+          hsn_id?: string;
+          id?: string;
+          motif_positions?: string;
+          protein_length?: number | null;
+          protein_name?: string | null;
+          total_motifs?: number | null;
+          uniprot_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
