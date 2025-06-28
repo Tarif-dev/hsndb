@@ -1,15 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-// Helper function to generate random positions for nitrosylation sites
-function generateRandomPositions(count: number): string {
-  const positions = [];
-  for (let i = 0; i < count; i++) {
-    positions.push(Math.floor(Math.random() * 500) + 1);
-  }
-  return positions.sort((a, b) => a - b).join(",");
-}
-
 export interface MotifProtein {
   id: string;
   hsn_id: string; // Unique identifier for the Human S-nitrosylated protein in the database
@@ -29,7 +20,9 @@ export interface MotifProtein {
 interface UseMotifProteinsParams {
   searchQuery?: string;
   filters?: {
-    cancerCausing?: string;
+    cancerCausing?: boolean;
+    totalSites?: string;
+    cancerTypes?: string[];
   };
   sortBy?: string;
   page?: number;
@@ -80,32 +73,32 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
         });
       } catch (err) {
         console.error("Database connection test failed:", err);
-      } // Query the motif_based_proteins table
-      let query = supabase.from("motif_based_proteins").select(
-        `
-          *
-        `,
-        { count: "exact" }
-      );
+      } // Build the base query
+      const baseQuery = supabase.from("motif_based_proteins");
 
-      // We'll fetch cancer data separately or handle it in the processing
-
-      // Log query details for debugging
-      console.log(
-        "Querying motif_based_proteins table with specific columns..."
-      );
+      // Apply filters step by step
+      let query = baseQuery.select("*", { count: "exact" });
 
       // Apply search filter
       if (searchQuery) {
         query = query.or(
           `gene_name.ilike.%${searchQuery}%,protein_name.ilike.%${searchQuery}%,uniprot_id.ilike.%${searchQuery}%,hsn_id.ilike.%${searchQuery}%`
         );
-      } // In a real scenario, we would filter by cancer_causing
-      // But since we're mocking cancer data, we'll log it for now
-      if (filters.cancerCausing) {
-        console.log(`Would filter by cancer_causing: ${filters.cancerCausing}`);
-        // In a real database where cancer_causing exists:
-        // query = query.eq("cancer_causing", filters.cancerCausing === "Yes");
+      }
+
+      // Apply cancer causing filter
+      if (filters.cancerCausing === true) {
+        console.log("Applying cancer causing filter: true");
+        query = query.is("cancer_causing", true);
+      } else if (filters.cancerCausing === false) {
+        console.log("Applying cancer causing filter: false");
+        query = query.is("cancer_causing", false);
+      }
+
+      // Apply cancer types filter
+      if (filters.cancerTypes && filters.cancerTypes.length > 0) {
+        console.log("Applying cancer types filter:", filters.cancerTypes);
+        query = query.overlaps("cancer_types", filters.cancerTypes);
       }
 
       // Apply sorting
@@ -128,8 +121,6 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
       try {
         // Extra safety - log the query details
         console.log("Executing query for motif proteins");
-        // Execute query
-        console.log("About to execute Supabase query");
 
         const response = await query;
         const { data, error, count } = response;
@@ -139,48 +130,16 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
           dataLength: data ? data.length : 0,
           error: error ? error.message : null,
           count,
-          statusCode: response.status,
         });
 
         if (error) {
           console.error("Error fetching motif proteins:", error);
           throw new Error(`Failed to fetch motif proteins: ${error.message}`);
         }
+
         console.log("Fetched motif proteins:", data ? data.length : 0, "items");
         console.log("Sample data:", data ? data.slice(0, 2) : null);
-        console.log("Total count:", count || 0); // If no data found, create mock data for testing purposes
-        if (!data || data.length === 0) {
-          console.log(
-            "No data found in motif_based_proteins, using mock data for testing"
-          );
-
-          // Generate 10 mock motif proteins for testing
-          const mockData = Array.from({ length: 10 }).map((_, index) => ({
-            id: `mock-${index}`,
-            hsn_id: `HSNMB${1000 + index}`,
-            gene_name: `GENE${index}`,
-            uniprot_id: `P${10000 + index}`,
-            protein_name: `Mock Protein ${index}`,
-            protein_length: 200 + index * 10,
-            alphafold_id: `AF-P${10000 + index}`,
-            total_sites: Math.floor(Math.random() * 5) + 1, // 1-5 random sites
-            positions_of_nitrosylation: generateRandomPositions(
-              Math.floor(Math.random() * 5) + 1
-            )
-              .split(",")
-              .map(Number),
-            cancer_causing: index % 3 === 0,
-            cancer_types: index % 3 === 0 ? ["Lung", "Breast"] : null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }));
-
-          return {
-            data: mockData as MotifProtein[],
-            count: mockData.length,
-            isMockData: true, // Flag to indicate mock data
-          };
-        } // Make sure we're handling empty data appropriately and ensure all required fields exist
+        console.log("Total count:", count || 0); // Make sure we're handling empty data appropriately and ensure all required fields exist
         const safeData = (data || []).map((item) => {
           return {
             // Basic motif protein fields
@@ -192,29 +151,13 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
             protein_length: item.protein_length || null,
             alphafold_id: item.alphafold_id || null,
             // Add nitrosylation site information
-            total_sites:
-              (item as any).total_sites || Math.floor(Math.random() * 5) + 1,
-            positions_of_nitrosylation: (item as any).positions_of_nitrosylation
-              ? typeof (item as any).positions_of_nitrosylation === "string"
-                ? (item as any).positions_of_nitrosylation
-                    .split(",")
-                    .map(Number)
-                : (item as any).positions_of_nitrosylation
-              : generateRandomPositions(Math.floor(Math.random() * 5) + 1)
-                  .split(",")
-                  .map(Number),
+            total_sites: (item as any).total_sites || null,
+            positions_of_nitrosylation:
+              (item as any).positions_of_nitrosylation || null,
 
-            // Add cancer information with some logic for testing purposes
-            // In a real scenario, we'd get this from a join with proteins table
-            // For now, we'll add mock cancer data based on hsn_id to ensure consistency
-            cancer_causing: item.hsn_id
-              ? item.hsn_id.charCodeAt(item.hsn_id.length - 1) % 3 === 0
-              : null,
-            cancer_types:
-              item.hsn_id &&
-              item.hsn_id.charCodeAt(item.hsn_id.length - 1) % 3 === 0
-                ? ["Lung", "Breast"]
-                : null,
+            // Get cancer information directly from motif_based_proteins table
+            cancer_causing: (item as any).cancer_causing || null,
+            cancer_types: (item as any).cancer_types || null,
 
             // Timestamps
             created_at: item.created_at || new Date().toISOString(),
@@ -222,9 +165,41 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
           };
         });
 
+        // Apply only client-side filters that can't be done at DB level
+        let filteredData = safeData;
+
+        console.log("Processing data - count:", filteredData.length);
+        console.log("Filters received:", filters);
+
+        // Apply total sites filter if needed (this can't be done at DB level easily)
+        if (filters.totalSites) {
+          console.log("Applying total sites filter:", filters.totalSites);
+          const beforeFilter = filteredData.length;
+          filteredData = filteredData.filter((protein) => {
+            const totalSites = protein.total_sites || 0;
+            switch (filters.totalSites) {
+              case "1":
+                return totalSites === 1;
+              case "2":
+                return totalSites === 2;
+              case "3-5":
+                return totalSites >= 3 && totalSites <= 5;
+              case "6-10":
+                return totalSites >= 6 && totalSites <= 10;
+              case "11+":
+                return totalSites >= 11;
+              default:
+                return true;
+            }
+          });
+          console.log(
+            `Total sites filter applied: ${beforeFilter} -> ${filteredData.length} proteins`
+          );
+        }
+
         return {
-          data: safeData as MotifProtein[],
-          count: count || 0,
+          data: filteredData as MotifProtein[],
+          count: count || 0, // Use the original count from the database
         };
       } catch (err) {
         console.error("Exception in useMotifProteins:", err);

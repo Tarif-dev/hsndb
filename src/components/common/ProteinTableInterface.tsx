@@ -126,6 +126,10 @@ const ProteinTableInterface = ({
       cancerCausing:
         filters.cancerSites.length > 0
           ? filters.cancerSites.includes("Yes")
+            ? true
+            : filters.cancerSites.includes("No")
+            ? false
+            : undefined
           : undefined,
       totalSites: filters.totalSites[0] || undefined,
       cancerTypes:
@@ -135,6 +139,21 @@ const ProteinTableInterface = ({
     page: currentPage,
     itemsPerPage,
   });
+
+  // Debug logging for filter values
+  useEffect(() => {
+    console.log("ProteinTableInterface - Filter state changed:", {
+      cancerSites: filters.cancerSites,
+      cancerCausingsent:
+        filters.cancerSites.length > 0
+          ? filters.cancerSites.includes("Yes")
+            ? true
+            : filters.cancerSites.includes("No")
+            ? false
+            : undefined
+          : undefined,
+    });
+  }, [filters.cancerSites]);
 
   // Add defensive checks for data
   const results = proteinsResult?.data || [];
