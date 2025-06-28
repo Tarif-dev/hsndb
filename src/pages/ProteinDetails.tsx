@@ -44,6 +44,8 @@ const ProteinDetails = () => {
   const { toast } = useToast();
   const [fastaModalOpen, setFastaModalOpen] = React.useState(false);
   const [fastaData, setFastaData] = React.useState<string | null>(null);
+  const [cdsModalOpen, setCdsModalOpen] = React.useState(false);
+  const [cdsData, setCdsData] = React.useState<string | null>(null);
   const {
     data: protein,
     isLoading,
@@ -185,6 +187,48 @@ const ProteinDetails = () => {
     }
   };
 
+  const handleViewCdsModal = async () => {
+    if (!protein?.hsn_id) return;
+
+    try {
+      // Fetch CDS data from the formats table
+      const { data: cdsData, error } = await supabase
+        .from("formats")
+        .select("CDS_sequence")
+        .eq("hsn_id", protein.hsn_id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching CDS data:", error);
+        toast({
+          title: "Failed to Load",
+          description: "Could not fetch CDS sequence",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!cdsData?.CDS_sequence) {
+        toast({
+          title: "No Data",
+          description: "CDS sequence not available for this protein",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setCdsData(cdsData.CDS_sequence);
+      setCdsModalOpen(true);
+    } catch (error) {
+      console.error("Error loading CDS:", error);
+      toast({
+        title: "Failed to Load",
+        description: "An error occurred while loading the CDS sequence",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCopyFasta = () => {
     if (fastaData) {
       navigator.clipboard.writeText(fastaData);
@@ -215,6 +259,39 @@ const ProteinDetails = () => {
     toast({
       title: "Downloaded!",
       description: `FASTA sequence saved as ${fileName}`,
+    });
+  };
+
+  const handleCopyCds = () => {
+    if (cdsData) {
+      navigator.clipboard.writeText(cdsData);
+      toast({
+        title: "Copied!",
+        description: "CDS sequence copied to clipboard",
+      });
+    }
+  };
+
+  const handleDownloadCdsFromModal = () => {
+    if (!cdsData || !protein) return;
+
+    const fileName = `${protein.gene_name || protein.protein_name}_${
+      protein.hsn_id
+    }_CDS.fasta`;
+
+    const blob = new Blob([cdsData], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Downloaded!",
+      description: `CDS sequence saved as ${fileName}`,
     });
   };
 
@@ -363,6 +440,10 @@ const ProteinDetails = () => {
                     <DropdownMenuItem onClick={handleViewFastaModal}>
                       <Download className="h-4 w-4 mr-2" />
                       FASTA (Canonical)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleViewCdsModal}>
+                      <Download className="h-4 w-4 mr-2" />
+                      CDS Sequence
                     </DropdownMenuItem>
                     <DropdownMenuItem disabled>
                       <Download className="h-4 w-4 mr-2" />
@@ -1358,6 +1439,54 @@ const ProteinDetails = () => {
                 <div className="p-4 max-h-96 overflow-y-auto">
                   <pre className="text-xs font-mono whitespace-pre-wrap break-all">
                     {formatFastaForDisplay(fastaData)}
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* CDS Export Modal */}
+      <Dialog open={cdsModalOpen} onOpenChange={setCdsModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>CDS Sequence Export</DialogTitle>
+            <DialogDescription>
+              Complete CDS sequence for {protein?.protein_name} (HSN ID:{" "}
+              {protein?.hsn_id})
+            </DialogDescription>
+          </DialogHeader>
+
+          {cdsData && (
+            <div className="space-y-4">
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCopyCds}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy to Clipboard
+                </Button>
+                <Button
+                  onClick={handleDownloadCdsFromModal}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download File
+                </Button>
+              </div>
+
+              {/* CDS display */}
+              <div className="border rounded-lg">
+                <div className="bg-muted p-2 border-b">
+                  <span className="text-sm font-medium">CDS Sequence</span>
+                </div>
+                <div className="p-4 max-h-96 overflow-y-auto">
+                  <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+                    {formatFastaForDisplay(cdsData)}
                   </pre>
                 </div>
               </div>

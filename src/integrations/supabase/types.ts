@@ -12,14 +12,17 @@ export type Database = {
       formats: {
         Row: {
           fasta: string | null;
+          CDS_sequence: string | null;
           hsn_id: string;
         };
         Insert: {
           fasta?: string | null;
+          CDS_sequence?: string | null;
           hsn_id: string;
         };
         Update: {
           fasta?: string | null;
+          CDS_sequence?: string | null;
           hsn_id?: string;
         };
         Relationships: [];
