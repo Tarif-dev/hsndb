@@ -55,11 +55,26 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
   const [selectedRegion, setSelectedRegion] = useState<[number, number] | null>(
     null
   );
+  const [containerWidth, setContainerWidth] = useState(800);
 
   const margin = { top: 20, right: 30, bottom: 60, left: 50 };
-  const width = 800;
+  const width = containerWidth;
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
+
+  // Update container width on resize
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        setContainerWidth(Math.max(400, containerRect.width - 32)); // Min width 400px, subtract padding
+      }
+    };
+
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
 
   // Color scale for disorder scores
   const colorScale = d3.scaleSequential(d3.interpolateRdYlBu).domain([1, 0]); // Higher disorder = red, lower disorder = blue
@@ -409,7 +424,7 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
       });
 
     g.append("g").attr("class", "brush").call(brush);
-  }, [data, selectedRegion, height, innerWidth, innerHeight]);
+  }, [data, selectedRegion, height, innerWidth, innerHeight, containerWidth]);
   const disorderRegions = getDisorderRegions();
   // Calculate average disorder (mean of all scores)
   const averageDisorder =
@@ -479,7 +494,7 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
         </CardHeader>
         <CardContent>
           {/* Statistics */}{" "}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center p-3 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
                 {data.length}
@@ -504,12 +519,6 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
                 Disorder Regions
               </div>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {(averageDisorder * 100).toFixed(1)}%
-              </div>
-              <div className="text-sm text-muted-foreground">Avg Disorder</div>
-            </div>
             <div className="text-center p-3 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
                 {percentageDisorder.toFixed(1)}%
@@ -518,12 +527,12 @@ const ProteinDisorderPlot: React.FC<ProteinDisorderPlotProps> = ({
             </div>
           </div>
           {/* Main Plot */}
-          <div ref={containerRef} className="relative">
+          <div ref={containerRef} className="relative w-full">
             <svg
               ref={svgRef}
               width={width}
               height={height}
-              className="border rounded-lg bg-white"
+              className="border rounded-lg bg-white w-full"
             />
 
             {/* Tooltip */}
