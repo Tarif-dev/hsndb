@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Browse from "./pages/Browse";
 import MotifBrowse from "./pages/MotifBrowse";
+import UnifiedBrowse from "./pages/UnifiedBrowse";
 import ProteinDetails from "./pages/ProteinDetails";
 import BlastSearch from "./pages/BlastSearch";
 import NotFound from "./pages/NotFound";
@@ -21,7 +22,10 @@ const App = () => (
         {" "}
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/browse" element={<Browse />} />
+          <Route path="/browse" element={<UnifiedBrowse />} />
+          {/* Legacy routes for backward compatibility */}
+          <Route path="/browse/experimental" element={<Browse />} />
+          <Route path="/browse/motif" element={<MotifBrowse />} />
           <Route path="/motif-browse" element={<MotifBrowse />} />
           <Route path="/blast" element={<BlastSearch />} />
           <Route path="/protein/:id" element={<ProteinDetails />} />

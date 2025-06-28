@@ -75,7 +75,7 @@ const MotifSection = () => {
             </div>
 
             <div className="pt-4">
-              <Button onClick={() => navigate("/motif-browse")} size="lg">
+              <Button onClick={() => navigate("/browse?type=motif")} size="lg">
                 Explore Motif Proteins
               </Button>
             </div>

@@ -70,7 +70,7 @@ const MotifBrowse = () => {
                     Return to Home
                   </a>
                   <a
-                    href="/browse"
+                    href="/browse?type=experimental"
                     className="px-4 py-2 bg-white border border-blue-600 text-blue-600 rounded-md"
                   >
                     Browse Experimental Proteins
