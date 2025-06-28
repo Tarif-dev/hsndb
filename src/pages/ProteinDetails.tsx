@@ -296,7 +296,10 @@ const ProteinDetails = () => {
   };
 
   const formatFastaForDisplay = (fastaText: string) => {
-    const lines = fastaText.split("\n");
+    // First, replace literal \n with actual newlines
+    const normalizedText = fastaText.replace(/\\n/g, "\n");
+
+    const lines = normalizedText.split("\n");
     const header = lines[0];
     const sequence = lines.slice(1).join("").replace(/\s/g, "");
 
