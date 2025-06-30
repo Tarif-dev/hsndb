@@ -46,7 +46,9 @@ const CentralSearch = () => {
       // Search in experimental proteins table
       const { data: expData, error: expError } = await supabase
         .from("proteins")
-        .select("id, hsn_id, gene_name, protein_name, uniprot_id, cancer_causing")
+        .select(
+          "id, hsn_id, gene_name, protein_name, uniprot_id, cancer_causing"
+        )
         .or(
           `gene_name.ilike.%${query}%,protein_name.ilike.%${query}%,uniprot_id.ilike.%${query}%,hsn_id.ilike.%${query}%`
         )
