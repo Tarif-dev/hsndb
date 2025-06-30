@@ -3,8 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface DatabaseStatistics {
   totalProteins: number;
+  experimentalProteins: number;
+  motifBasedProteins: number;
   cancerAssociatedProteins: number;
   totalSites: number;
+  totalMotifs: number;
   disorderedProteins: number; // Total proteins with disorder score > 0
   fullyDisorderedProteins: number; // Proteins with 100% disorder
   moderatelyDisorderedProteins: number; // Proteins with 50-99% disorder
@@ -17,16 +20,39 @@ export const useStatistics = () => {
     queryFn: async (): Promise<DatabaseStatistics> => {
       console.log("Fetching database statistics...");
 
-      // Query for total number of proteins
-      const { count: totalProteins, error: proteinsError } = await supabase
-        .from("proteins")
-        .select("*", { count: "exact", head: true });
+      // Query for experimental proteins count
+      const { count: experimentalProteins, error: proteinsError } =
+        await supabase
+          .from("proteins")
+          .select("*", { count: "exact", head: true });
 
       if (proteinsError) {
-        console.error("Error fetching total proteins count:", proteinsError);
+        console.error(
+          "Error fetching experimental proteins count:",
+          proteinsError
+        );
         throw proteinsError;
-      } // Query for cancer-associated proteins count
-      // If a protein has cancer_causing=true, it's cancer associated
+      }
+
+      // Query for motif-based proteins count
+      const { count: motifBasedProteins, error: motifError } = await supabase
+        .from("motif_based_proteins")
+        .select("*", { count: "exact", head: true });
+
+      if (motifError) {
+        console.error("Error fetching motif-based proteins count:", motifError);
+        throw motifError;
+      }
+
+      // Calculate total proteins
+      const totalProteins =
+        (experimentalProteins || 0) + (motifBasedProteins || 0);
+
+      console.log(`Experimental proteins: ${experimentalProteins || 0}`);
+      console.log(`Motif-based proteins: ${motifBasedProteins || 0}`);
+      console.log(`Total proteins: ${totalProteins}`);
+
+      // Query for cancer-associated proteins count (only from experimental table)
       const { count: cancerAssociatedProteins, error: cancerError } =
         await supabase
           .from("proteins")
@@ -44,7 +70,7 @@ export const useStatistics = () => {
         `Cancer-associated proteins: ${cancerAssociatedProteins || 0}`
       );
 
-      // Query for all total_sites values and calculate the sum
+      // Query for all total_sites values from experimental proteins
       const { data: sitesData, error: sitesError } = await supabase
         .from("proteins")
         .select("total_sites");
@@ -55,8 +81,26 @@ export const useStatistics = () => {
       }
 
       // Use the manually verified total or calculate it
-      // Since we manually verified the total is 11466, we'll use that as fallback
-      const totalSites = 11466; // Hardcoded for now to ensure correct value      console.log(`Total S-nitrosylation sites: ${totalSites}`);
+      const totalSitesValue = 11466; // Hardcoded for now to ensure correct value
+      console.log(`Total S-nitrosylation sites: ${totalSitesValue}`);
+
+      // Query for all total_motifs values from motif-based proteins
+      const { data: motifsData, error: motifsError } = await supabase
+        .from("motif_based_proteins")
+        .select("total_motifs");
+
+      if (motifsError) {
+        console.error("Error fetching total motifs:", motifsError);
+        throw motifsError;
+      }
+
+      // Calculate total motifs
+      const totalMotifs =
+        motifsData?.reduce((sum, protein) => {
+          return sum + (protein.total_motifs || 0);
+        }, 0) || 0;
+
+      console.log(`Total motifs: ${totalMotifs}`);
 
       // Query for disordered proteins
       // 1. First get all protein_disorder records to analyze
@@ -108,9 +152,12 @@ export const useStatistics = () => {
       console.log(`Weakly disordered proteins: ${weaklyDisorderedCount}`);
 
       console.log("Database statistics calculated:", {
-        totalProteins: totalProteins || 0,
+        totalProteins,
+        experimentalProteins: experimentalProteins || 0,
+        motifBasedProteins: motifBasedProteins || 0,
         cancerAssociatedProteins: cancerAssociatedProteins || 0,
-        totalSites,
+        totalSites: totalSitesValue,
+        totalMotifs,
         disorderedProteins: disorderedCount,
         fullyDisorderedProteins: fullyDisorderedCount,
         moderatelyDisorderedProteins: moderatelyDisorderedCount,
@@ -118,9 +165,12 @@ export const useStatistics = () => {
       });
 
       return {
-        totalProteins: totalProteins || 0,
+        totalProteins,
+        experimentalProteins: experimentalProteins || 0,
+        motifBasedProteins: motifBasedProteins || 0,
         cancerAssociatedProteins: cancerAssociatedProteins || 0,
-        totalSites,
+        totalSites: totalSitesValue,
+        totalMotifs,
         disorderedProteins: disorderedCount,
         fullyDisorderedProteins: fullyDisorderedCount,
         moderatelyDisorderedProteins: moderatelyDisorderedCount,

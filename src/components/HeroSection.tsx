@@ -66,8 +66,9 @@ const HeroSection = () => {
           <div className="max-w-5xl mx-auto mb-12">
             <p className="text-xl sm:text-2xl text-gray-600 mb-8 leading-relaxed">
               The most comprehensive database of human S-nitrosylated proteins,
-              designed for researchers studying nitric oxide signaling and its
-              role in health and disease.
+              combining experimental validation with computational predictions
+              to provide unparalleled coverage of nitric oxide signaling
+              pathways.
             </p>
 
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-200 shadow-lg text-left">
@@ -180,11 +181,21 @@ const HeroSection = () => {
                     <div className="text-2xl font-bold text-blue-600 mb-1">
                       {statisticsLoading ? (
                         <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                      ) : statisticsError ? (
+                        <span className="text-red-500 text-sm">Error</span>
                       ) : (
-                        "4,533"
+                        formatNumber(statistics?.totalProteins || 0)
                       )}
                     </div>
                     <div className="text-xs text-gray-600">Total Proteins</div>
+                    {!statisticsLoading && !statisticsError && statistics && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {formatNumber(statistics.experimentalProteins)}{" "}
+                        experimental +{" "}
+                        {formatNumber(statistics.motifBasedProteins)}{" "}
+                        motif-based
+                      </div>
+                    )}
                   </div>
                   <div className="bg-white/80 rounded-lg p-4 text-center">
                     <div className="text-2xl font-bold text-red-600 mb-1">
