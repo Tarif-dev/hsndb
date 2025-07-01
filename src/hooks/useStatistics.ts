@@ -7,7 +7,7 @@ export interface DatabaseStatistics {
   motifBasedProteins: number;
   cancerAssociatedProteins: number;
   totalSites: number;
-  totalMotifs: number;
+  totalMotifSites: number;
   disorderedProteins: number; // Total proteins with disorder score > 0
   fullyDisorderedProteins: number; // Proteins with 100% disorder
   moderatelyDisorderedProteins: number; // Proteins with 50-99% disorder
@@ -84,23 +84,23 @@ export const useStatistics = () => {
       const totalSitesValue = 11466; // Hardcoded for now to ensure correct value
       console.log(`Total S-nitrosylation sites: ${totalSitesValue}`);
 
-      // Query for all total_motifs values from motif-based proteins
+      // Query for all total_sites values from motif-based proteins
       const { data: motifsData, error: motifsError } = await supabase
         .from("motif_based_proteins")
-        .select("total_motifs");
+        .select("total_sites");
 
       if (motifsError) {
-        console.error("Error fetching total motifs:", motifsError);
+        console.error("Error fetching total sites:", motifsError);
         throw motifsError;
       }
 
-      // Calculate total motifs
-      const totalMotifs =
+      // Calculate total sites from motif-based proteins
+      const totalMotifSites =
         motifsData?.reduce((sum, protein) => {
-          return sum + (protein.total_motifs || 0);
+          return sum + (protein.total_sites || 0);
         }, 0) || 0;
 
-      console.log(`Total motifs: ${totalMotifs}`);
+      console.log(`Total motif sites: ${totalMotifSites}`);
 
       // Query for disordered proteins
       // 1. First get all protein_disorder records to analyze
@@ -157,7 +157,7 @@ export const useStatistics = () => {
         motifBasedProteins: motifBasedProteins || 0,
         cancerAssociatedProteins: cancerAssociatedProteins || 0,
         totalSites: totalSitesValue,
-        totalMotifs,
+        totalMotifSites,
         disorderedProteins: disorderedCount,
         fullyDisorderedProteins: fullyDisorderedCount,
         moderatelyDisorderedProteins: moderatelyDisorderedCount,
@@ -170,7 +170,7 @@ export const useStatistics = () => {
         motifBasedProteins: motifBasedProteins || 0,
         cancerAssociatedProteins: cancerAssociatedProteins || 0,
         totalSites: totalSitesValue,
-        totalMotifs,
+        totalMotifSites,
         disorderedProteins: disorderedCount,
         fullyDisorderedProteins: fullyDisorderedCount,
         moderatelyDisorderedProteins: moderatelyDisorderedCount,

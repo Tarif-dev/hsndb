@@ -79,8 +79,6 @@ const ProteinDetails = () => {
       // Add a source field and map motif positions to the same structure as nitrosylation positions
       return {
         ...motifData,
-        positions_of_nitrosylation: motifData.motif_positions,
-        total_sites: motifData.total_motifs,
         source: "motif",
       };
     },
@@ -412,9 +410,7 @@ const ProteinDetails = () => {
                     </Badge>
                   )}
                   <Badge variant="outline">
-                    {protein.source === "experimental"
-                      ? `${protein.total_sites} Nitrosylation Sites`
-                      : `${protein.total_sites} Motif Occurrences`}
+                    {protein.total_sites} Nitrosylation Sites
                   </Badge>
                   <Badge variant="outline">
                     {protein.protein_length} amino acids
@@ -559,9 +555,7 @@ const ProteinDetails = () => {
                       </div>{" "}
                       <div>
                         <label className="text-sm font-medium text-muted-foreground">
-                          {protein.source === "experimental"
-                            ? "Total Nitrosylation Sites"
-                            : "Total Motif Occurrences"}
+                          Total Nitrosylation Sites
                         </label>
                         <p className="text-lg font-semibold">
                           {protein.total_sites}
@@ -580,9 +574,7 @@ const ProteinDetails = () => {
                     </div>{" "}
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">
-                        {protein.source === "experimental"
-                          ? "Nitrosylation Positions"
-                          : "Motif Positions"}
+                        Nitrosylation Positions
                       </label>
                       <p className="text-lg font-mono mt-1 bg-muted p-2 rounded">
                         {protein.positions_of_nitrosylation}
@@ -980,9 +972,7 @@ const ProteinDetails = () => {
                         Functional Impact
                       </label>
                       <p className="text-sm mt-1">
-                        {protein.source === "experimental"
-                          ? `S-nitrosylation at ${protein.total_sites} site(s) may`
-                          : `${protein.total_sites} motif occurrence(s) may`}
+                        S-nitrosylation at {protein.total_sites} site(s) may
                         regulate protein activity, localization, and
                         protein-protein interactions.
                       </p>

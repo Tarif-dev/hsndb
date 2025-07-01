@@ -115,10 +115,10 @@ export type Database = {
           gene_name: string | null;
           hsn_id: string;
           id: string;
-          motif_positions: string;
+          positions_of_nitrosylation: string;
           protein_length: number | null;
           protein_name: string | null;
-          total_motifs: number | null;
+          total_sites: number | null;
           uniprot_id: string | null;
           updated_at: string;
         };
@@ -128,10 +128,10 @@ export type Database = {
           gene_name?: string | null;
           hsn_id: string;
           id?: string;
-          motif_positions: string;
+          positions_of_nitrosylation: string;
           protein_length?: number | null;
           protein_name?: string | null;
-          total_motifs?: number | null;
+          total_sites?: number | null;
           uniprot_id?: string | null;
           updated_at?: string;
         };
@@ -141,10 +141,10 @@ export type Database = {
           gene_name?: string | null;
           hsn_id?: string;
           id?: string;
-          motif_positions?: string;
+          positions_of_nitrosylation?: string;
           protein_length?: number | null;
           protein_name?: string | null;
-          total_motifs?: number | null;
+          total_sites?: number | null;
           uniprot_id?: string | null;
           updated_at?: string;
         };

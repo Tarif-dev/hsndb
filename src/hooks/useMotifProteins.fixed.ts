@@ -9,8 +9,8 @@ export interface MotifProtein {
   protein_name: string | null; // Full name of the protein
   protein_length: number | null; // Number of amino acids in the protein
   alphafold_id: string | null; // Corresponding AlphaFold structure ID
-  motif_positions: string | null; // Specific residue positions where the [I/L]-X-C-X₂-[D/E] motif is found
-  total_motifs: number | null; // Total number of motif occurrences in the protein
+  positions_of_nitrosylation: string | null; // Specific residue positions where the [I/L]-X-C-X₂-[D/E] motif is found
+  total_sites: number | null; // Total number of motif occurrences in the protein
   created_at: string;
   updated_at: string;
 }
@@ -18,7 +18,7 @@ export interface MotifProtein {
 interface UseMotifProteinsParams {
   searchQuery?: string;
   filters?: {
-    totalMotifs?: string;
+    totalSites?: string;
   };
   sortBy?: string;
   page?: number;
@@ -58,19 +58,19 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
       }
 
       // Apply filters
-      if (filters.totalMotifs) {
-        switch (filters.totalMotifs) {
+      if (filters.totalSites) {
+        switch (filters.totalSites) {
           case "1":
-            query = query.eq("total_motifs", 1);
+            query = query.eq("total_sites", 1);
             break;
           case "2":
-            query = query.eq("total_motifs", 2);
+            query = query.eq("total_sites", 2);
             break;
           case "3-5":
-            query = query.gte("total_motifs", 3).lte("total_motifs", 5);
+            query = query.gte("total_sites", 3).lte("total_sites", 5);
             break;
           case "6+":
-            query = query.gte("total_motifs", 6);
+            query = query.gte("total_sites", 6);
             break;
         }
       }
@@ -79,8 +79,8 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
       let ascending = true;
       const orderColumn = sortBy === "relevance" ? "hsn_id" : sortBy;
 
-      // For total_motifs and protein_length, sort in descending order (larger numbers first)
-      if (sortBy === "total_motifs" || sortBy === "protein_length") {
+      // For total_sites and protein_length, sort in descending order (larger numbers first)
+      if (sortBy === "total_sites" || sortBy === "protein_length") {
         ascending = false;
       } else if (sortBy === "relevance") {
         ascending = false; // For relevance, also sort in descending order
@@ -118,8 +118,9 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
           protein_name: protein.protein_name || null,
           protein_length: protein.protein_length || null,
           alphafold_id: protein.alphafold_id || null,
-          motif_positions: protein.motif_positions || null,
-          total_motifs: protein.total_motifs || 0,
+          positions_of_nitrosylation:
+            protein.positions_of_nitrosylation || null,
+          total_sites: protein.total_sites || 0,
           created_at: protein.created_at || new Date().toISOString(),
           updated_at: protein.updated_at || new Date().toISOString(),
         }));

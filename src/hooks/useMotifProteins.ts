@@ -105,8 +105,8 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
       let ascending = true;
       const orderColumn = sortBy === "relevance" ? "hsn_id" : sortBy;
 
-      // For total_motifs and protein_length, sort in descending order (larger numbers first)
-      if (sortBy === "total_motifs" || sortBy === "protein_length") {
+      // For total_sites and protein_length, sort in descending order (larger numbers first)
+      if (sortBy === "total_sites" || sortBy === "protein_length") {
         ascending = false;
       } else if (sortBy === "relevance") {
         ascending = false; // For relevance, also sort in descending order

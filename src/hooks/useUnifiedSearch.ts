@@ -133,7 +133,7 @@ export const useUnifiedSearch = (params: UseUnifiedSearchParams = {}) => {
           );
         }
 
-        // For motif proteins, map total_motifs to total_sites for consistency
+        // For motif proteins, they already have total_sites field
         const {
           data: motifData,
           error: motifError,
@@ -146,7 +146,6 @@ export const useUnifiedSearch = (params: UseUnifiedSearchParams = {}) => {
           const mappedMotifData = motifData.map((protein) => ({
             ...protein,
             source: "motif" as const,
-            total_sites: protein.total_motifs,
             cancer_causing: null, // Motif proteins don't have cancer association data
             cancer_types: null,
           }));
