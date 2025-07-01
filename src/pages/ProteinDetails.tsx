@@ -548,7 +548,7 @@ const ProteinDetails = () => {
                       </label>
                       <p className="text-lg mt-1">{protein.protein_name}</p>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
                         <label className="text-sm font-medium text-muted-foreground">
                           Protein Length
@@ -565,6 +565,16 @@ const ProteinDetails = () => {
                         </label>
                         <p className="text-lg font-semibold">
                           {protein.total_sites}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-muted-foreground">
+                          Disorder Percentage
+                        </label>
+                        <p className="text-lg">
+                          {disorderData?.percentageDisorder
+                            ? `${disorderData.percentageDisorder.toFixed(1)}%`
+                            : "N/A"}
                         </p>
                       </div>
                     </div>{" "}
@@ -670,127 +680,6 @@ const ProteinDetails = () => {
                     </div>
                   </CardContent>
                 </Card>
-                {/* Disorder Summary */}
-                {disorderData && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Disorder Summary</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Overall Disorder
-                        </label>
-                        <div className="mt-2">
-                          {(() => {
-                            const avgDisorder =
-                              disorderData.scores.reduce((a, b) => a + b, 0) /
-                              disorderData.scores.length;
-                            const disorderPercentage = (
-                              avgDisorder * 100
-                            ).toFixed(1);
-                            return (
-                              <Badge
-                                variant={
-                                  avgDisorder > 0.5
-                                    ? "destructive"
-                                    : avgDisorder > 0.3
-                                    ? "secondary"
-                                    : "outline"
-                                }
-                                className="text-sm"
-                              >
-                                {disorderPercentage}% Average Disorder
-                              </Badge>
-                            );
-                          })()}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Disordered Regions
-                        </label>
-                        <div className="mt-2">
-                          {(() => {
-                            const disorderedResidues =
-                              disorderData.scores.filter(
-                                (score) => score >= 0.5
-                              ).length;
-                            const disorderRegions = (() => {
-                              const regions: Array<{
-                                start: number;
-                                end: number;
-                              }> = [];
-                              let currentRegion: {
-                                start: number;
-                                end: number;
-                              } | null = null;
-
-                              disorderData.scores.forEach((score, index) => {
-                                if (score >= 0.5) {
-                                  if (!currentRegion) {
-                                    currentRegion = {
-                                      start: index + 1,
-                                      end: index + 1,
-                                    };
-                                  } else {
-                                    currentRegion.end = index + 1;
-                                  }
-                                } else {
-                                  if (
-                                    currentRegion &&
-                                    currentRegion.end - currentRegion.start >= 9
-                                  ) {
-                                    regions.push(currentRegion);
-                                  }
-                                  currentRegion = null;
-                                }
-                              });
-
-                              if (
-                                currentRegion &&
-                                currentRegion.end - currentRegion.start >= 9
-                              ) {
-                                regions.push(currentRegion);
-                              }
-
-                              return regions;
-                            })();
-
-                            return (
-                              <div className="flex flex-wrap gap-2">
-                                <Badge variant="outline" className="text-xs">
-                                  {disorderedResidues} disordered residues
-                                </Badge>
-                                <Badge variant="outline" className="text-xs">
-                                  {disorderRegions.length} disorder regions
-                                </Badge>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </div>
-
-                      <div className="pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            // Switch to disorder tab
-                            const disorderTab =
-                              document.querySelector('[value="disorder"]');
-                            if (disorderTab instanceof HTMLElement) {
-                              disorderTab.click();
-                            }
-                          }}
-                        >
-                          View Detailed Plot
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
               </div>
             </TabsContent>
 
