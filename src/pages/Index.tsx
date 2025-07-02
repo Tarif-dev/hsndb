@@ -1,6 +1,7 @@
 import React from "react";
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
+import DatabaseOverview from "@/components/DatabaseOverview";
 import FeaturesSection from "@/components/FeaturesSection";
 import CentralSearch from "@/components/CentralSearch";
 import MotifSection from "@/components/MotifSection";
@@ -13,6 +14,9 @@ const Index = () => {
       <Navigation />
       <HeroSection />
       <CentralSearch />
+      <div className="py-4 bg-gray-50">
+        <DatabaseOverview />
+      </div>
       <FeaturesSection />
       <MotifSection />
       <Footer />

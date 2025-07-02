@@ -40,7 +40,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 py-20 lg:py-32 overflow-hidden">
+    <section className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-12 pb-4 lg:pt-16 lg:pb-6 overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div
@@ -86,10 +86,9 @@ const HeroSection = () => {
                   </div>
                   <p className="text-gray-700 mb-4">
                     S-nitrosylation is a reversible post-translational
-                    modification where nitric oxide (NO) forms covalent bonds
-                    with cysteine residues in proteins, creating S-nitrosothiol
-                    groups. This modification serves as a critical regulatory
-                    mechanism in cellular signaling.
+                    modification where nitric oxide covalently binds to cysteine
+                    residues, forming S-nitrosothiol groups that regulate
+                    cellular signaling pathways.
                   </p>
                 </div>
                 <div>
@@ -100,11 +99,10 @@ const HeroSection = () => {
                     </h3>
                   </div>
                   <p className="text-gray-700 mb-4">
-                    In humans, dysregulated S-nitrosylation is implicated in
-                    cardiovascular diseases, neurodegenerative disorders,
-                    cancer, and metabolic diseases. Understanding these
-                    modifications helps identify therapeutic targets and disease
-                    biomarkers.
+                    Dysregulated S-nitrosylation is linked to cardiovascular
+                    diseases, neurodegeneration, cancer, and metabolic
+                    disorders, making it crucial for identifying therapeutic
+                    targets.
                   </p>
                 </div>
                 <div>
@@ -116,10 +114,9 @@ const HeroSection = () => {
                   </div>
                   <p className="text-gray-700">
                     HSNDB enables researchers to explore S-nitrosylation
-                    patterns, identify cancer-related modifications, study
-                    tissue-specific distributions, and develop targeted
-                    interventions for diseases involving nitric oxide signaling
-                    pathways.
+                    patterns, study cancer associations, analyze tissue
+                    distributions, and develop targeted therapeutic
+                    interventions.
                   </p>
                 </div>
                 <div>
@@ -132,212 +129,13 @@ const HeroSection = () => {
                   <p className="text-gray-700">
                     HSNDB aggregates human S-nitrosylation data from
                     peer-reviewed studies, providing comprehensive information
-                    on modification sites, tissue distributions, disease
-                    associations, and functional annotations with
-                    high-confidence experimental evidence.
+                    on modification sites, tissue distributions, and disease
+                    associations with experimental validation.
                   </p>
                 </div>{" "}
               </div>
             </div>
           </div>{" "}
-          {/* Enhanced Database Statistics */}
-          <div className="max-w-7xl mx-auto mb-12">
-            {/* Overview Header */}
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Database Overview
-              </h2>
-              <p className="text-gray-600">
-                Comprehensive statistics from our experimental and computational
-                protein databases
-              </p>
-            </div>
-
-            {/* Database Type Cards */}
-            <div className="grid md:grid-cols-2 gap-8 mb-8">
-              {/* Experimental Database Card */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-500 rounded-lg">
-                      <Database className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">
-                        Experimental Database
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        Laboratory-validated S-nitrosylation sites
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                    High Confidence
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-white/80 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-600 mb-1">
-                      {statisticsLoading ? (
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                      ) : statisticsError ? (
-                        <span className="text-red-500 text-sm">Error</span>
-                      ) : (
-                        formatNumber(statistics?.totalProteins || 0)
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-600">Total Proteins</div>
-                    {!statisticsLoading && !statisticsError && statistics && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        {formatNumber(statistics.experimentalProteins)}{" "}
-                        experimental +{" "}
-                        {formatNumber(statistics.motifBasedProteins)}{" "}
-                        motif-based
-                      </div>
-                    )}
-                  </div>
-                  <div className="bg-white/80 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-red-600 mb-1">
-                      {statisticsLoading ? (
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                      ) : statisticsError ? (
-                        <span className="text-red-500 text-sm">Error</span>
-                      ) : (
-                        formatNumber(statistics?.cancerAssociatedProteins || 0)
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      Cancer-Associated
-                    </div>
-                  </div>
-                  <div className="bg-white/80 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-green-600 mb-1">
-                      {statisticsLoading ? (
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                      ) : statisticsError ? (
-                        <span className="text-red-500 text-sm">Error</span>
-                      ) : (
-                        formatNumber(statistics?.totalSites || 0)
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      S-nitrosylation Sites
-                    </div>
-                  </div>
-                  <div className="bg-white/80 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-purple-600 mb-1">
-                      {statisticsLoading ? (
-                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                      ) : statisticsError ? (
-                        <span className="text-red-500 text-sm">Error</span>
-                      ) : (
-                        formatNumber(statistics?.disorderedProteins || 0)
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      Disordered Proteins
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-                  onClick={() => navigate("/browse?type=experimental")}
-                >
-                  Browse Experimental Data
-                </Button>
-              </div>
-
-              {/* Motif-Based Database Card */}
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-8 border-2 border-purple-200 shadow-lg hover:shadow-xl transition-all duration-300">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-purple-500 rounded-lg">
-                      <BarChart3 className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold text-gray-900">
-                        Motif-Based Database
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        Computationally predicted S-nitrosylation sites
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                    Computational
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-white/80 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-purple-600 mb-1">
-                      14,188
-                    </div>
-                    <div className="text-xs text-gray-600">Total Proteins</div>
-                  </div>
-                  <div className="bg-white/80 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-red-600 mb-1">
-                      ~8,500
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      Cancer-Associated
-                    </div>
-                  </div>
-                  <div className="bg-white/80 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-green-600 mb-1">
-                      ~42,000
-                    </div>
-                    <div className="text-xs text-gray-600">Predicted Sites</div>
-                  </div>
-                  <div className="bg-white/80 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-orange-600 mb-1">
-                      ~6,800
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      Disordered Proteins
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  className="w-full bg-purple-500 hover:bg-purple-600 text-white"
-                  onClick={() => navigate("/browse?type=motif")}
-                >
-                  Browse Motif-Based Data
-                </Button>
-              </div>
-            </div>
-
-            {/* Combined Statistics Banner */}
-            <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-2xl p-6 text-white shadow-lg">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-                <div>
-                  <div className="text-3xl font-bold mb-1">18,721</div>
-                  <div className="text-blue-100 text-sm">Total Proteins</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold mb-1">
-                    {statisticsLoading ? (
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                    ) : (
-                      "2"
-                    )}
-                  </div>
-                  <div className="text-blue-100 text-sm">Database Types</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold mb-1">100%</div>
-                  <div className="text-blue-100 text-sm">Human Proteome</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold mb-1">2024</div>
-                  <div className="text-blue-100 text-sm">Latest Data</div>
-                </div>
-              </div>
-            </div>
-          </div>
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
