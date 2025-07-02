@@ -149,6 +149,7 @@ const HeroSection = () => {
               variant="outline"
               size="lg"
               className="border-2 border-gray-300 hover:border-blue-500 px-8 py-3 rounded-xl"
+              onClick={() => navigate("/docs")}
             >
               View Documentation
             </Button>
