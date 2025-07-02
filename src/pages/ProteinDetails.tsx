@@ -37,6 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import CancerMutationInfo from "@/components/CancerMutationInfo";
 
 const ProteinDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -582,17 +583,18 @@ const ProteinDetails = () => {
                     </div>
                   </CardContent>
                 </Card>
-                {/* Cancer Information */}{" "}
+                {/* Cancer Information */}
                 <Card>
                   <CardHeader>
                     <CardTitle>Cancer Information</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {protein.source === "experimental" ? (
+                    {/* Original cancer association for experimental proteins */}
+                    {protein.source === "experimental" && (
                       <>
                         <div>
                           <label className="text-sm font-medium text-muted-foreground">
-                            Cancer Association
+                            General Cancer Association
                           </label>
                           <div className="mt-2">
                             <Badge
@@ -612,7 +614,7 @@ const ProteinDetails = () => {
                           (protein as any).cancer_types.length > 0 && (
                             <div>
                               <label className="text-sm font-medium text-muted-foreground">
-                                Associated Cancer Types
+                                General Cancer Types
                               </label>
                               <div className="flex flex-wrap gap-2 mt-2">
                                 {(protein as any).cancer_types.map(
@@ -629,25 +631,45 @@ const ProteinDetails = () => {
                               </div>
                             </div>
                           )}
+                        <Separator />
                       </>
-                    ) : (
-                      <div>
-                        <p className="text-gray-600">
-                          Cancer association data is not available for
-                          motif-based predicted proteins. These proteins are
-                          identified based on the presence of the{" "}
-                          <span className="font-mono bg-gray-100 text-gray-800 px-1 rounded">
-                            [I/L]-X-C-X₂-[D/E]
-                          </span>{" "}
-                          motif and have not been experimentally validated for
-                          cancer association yet.
-                        </p>
-                      </div>
+                    )}
+
+                    {/* Enhanced Cancer Mutation Information */}
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground mb-3 block">
+                        Cysteine Cancer Mutations
+                      </label>
+                      <CancerMutationInfo
+                        geneName={protein.gene_name}
+                        uniprotId={protein.uniprot_id}
+                        nitrosylationPositions={
+                          protein.positions_of_nitrosylation
+                        }
+                      />
+                    </div>
+
+                    {protein.source === "motif" && (
+                      <>
+                        <Separator />
+                        <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+                          <p className="text-sm text-amber-800">
+                            <strong>Note:</strong> This is a motif-based
+                            predicted protein with the{" "}
+                            <span className="font-mono bg-amber-100 text-amber-900 px-1 rounded">
+                              [I/L]-X-C-X₂-[D/E]
+                            </span>{" "}
+                            motif. Cancer mutation data shown above is based on
+                            the gene/protein identity and may include
+                            experimental validation data.
+                          </p>
+                        </div>
+                      </>
                     )}
 
                     <div className="pt-4">
                       <h4 className="font-medium mb-2">
-                        Cancer Research Links
+                        Additional Cancer Research Links
                       </h4>
                       <div className="space-y-2">
                         <a
@@ -658,7 +680,7 @@ const ProteinDetails = () => {
                         >
                           NCBI Gene Database
                           <ExternalLink className="h-3 w-3" />
-                        </a>{" "}
+                        </a>
                         <a
                           href={`https://www.genecards.org/cgi-bin/carddisp.pl?gene=${protein.gene_name}`}
                           target="_blank"

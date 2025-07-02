@@ -150,6 +150,42 @@ export type Database = {
         };
         Relationships: [];
       };
+      cancer_cysteine_mutations: {
+        Row: {
+          id: number;
+          gene_name: string;
+          uniprot_id: string;
+          position: number;
+          reference_aa: string;
+          altered_aa: string;
+          cancer_type: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          gene_name: string;
+          uniprot_id: string;
+          position: number;
+          reference_aa?: string;
+          altered_aa: string;
+          cancer_type: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: number;
+          gene_name?: string;
+          uniprot_id?: string;
+          position?: number;
+          reference_aa?: string;
+          altered_aa?: string;
+          cancer_type?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

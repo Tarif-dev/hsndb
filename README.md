@@ -195,6 +195,20 @@ The application uses Supabase PostgreSQL with the following main entities:
 - updated_at: Timestamp
 ```
 
+### Cancer Mutations Table (New!)
+
+```sql
+- id: UUID (Primary Key)
+- protein_id: UUID (Foreign Key to Proteins Table)
+- mutation_type: String
+- position: Integer
+- amino_acid_change: String
+- cancer_type: String
+- evidence_level: String
+- created_at: Timestamp
+- updated_at: Timestamp
+```
+
 ---
 
 ## 🚀 Deployment
@@ -320,4 +334,3 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-
