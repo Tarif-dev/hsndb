@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Search, TrendingUp, ExternalLink } from "lucide-react";
+import { Search, TrendingUp, ExternalLink, Award, Dna } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -320,11 +320,21 @@ const CentralSearch = () => {
   };
 
   const getSourceIndicator = (source: "experimental" | "motif") => {
-    return source === "experimental" ? "🔬" : "🧠";
+    return source === "experimental" ? (
+      <div className="flex items-center justify-center w-6 h-6 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full shadow-sm">
+        <Award className="h-3 w-3 text-white" />
+      </div>
+    ) : (
+      <div className="flex items-center justify-center w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full shadow-sm">
+        <Dna className="h-3 w-3 text-white" />
+      </div>
+    );
   };
 
   const getSourceLabel = (source: "experimental" | "motif") => {
-    return source === "experimental" ? "Experimental" : "Motif-based";
+    return source === "experimental"
+      ? "Experimentally Validated"
+      : "Motif-based Prediction";
   };
 
   return (
@@ -373,9 +383,19 @@ const CentralSearch = () => {
                 <div className="p-2">
                   <div className="text-xs font-medium text-gray-500 px-3 py-2 flex items-center justify-between">
                     <span>Real-time suggestions from both databases</span>
-                    <div className="flex items-center space-x-2 text-xs">
-                      <span className="flex items-center">🔬 Experimental</span>
-                      <span className="flex items-center">🧠 Motif-based</span>
+                    <div className="flex items-center space-x-4 text-xs">
+                      <span className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center w-4 h-4 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full shadow-sm">
+                          <Award className="h-2 w-2 text-white" />
+                        </div>
+                        <span>Experimental</span>
+                      </span>
+                      <span className="flex items-center space-x-2">
+                        <div className="flex items-center justify-center w-4 h-4 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full shadow-sm">
+                          <Dna className="h-2 w-2 text-white" />
+                        </div>
+                        <span>Motif-based</span>
+                      </span>
                     </div>
                     {isLoading && (
                       <div className="ml-2 w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
@@ -407,7 +427,7 @@ const CentralSearch = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <span
-                          className="text-sm"
+                          className="flex items-center"
                           title={getSourceLabel(suggestion.source)}
                         >
                           {getSourceIndicator(suggestion.source)}
