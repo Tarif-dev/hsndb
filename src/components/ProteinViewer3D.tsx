@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Loader2, RotateCcw, Download, Maximize, Info } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 declare global {
   interface Window {
@@ -29,6 +31,7 @@ interface ProteinViewer3DProps {
   alphafoldId: string;
   proteinName: string;
   nitrosylationSites?: number[]; // Add this prop to accept nitrosylation positions
+  sequence?: string; // Add sequence prop for amino acid sequence display
 }
 
 interface ResidueInfo {
@@ -44,6 +47,7 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
   alphafoldId,
   proteinName,
   nitrosylationSites = [], // Default to empty array if not provided
+  sequence = "", // Default to empty string if not provided
 }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
   const [viewer, setViewer] = useState<any>(null);
@@ -55,6 +59,74 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
   const [hoveredResidue, setHoveredResidue] = useState<ResidueInfo | null>(
     null
   );
+  const [selectedResidues, setSelectedResidues] = useState<Set<number>>(
+    new Set()
+  );
+  const [lastSelectedResidue, setLastSelectedResidue] = useState<number | null>(
+    null
+  );
+  const { toast } = useToast();
+
+  // Parse sequence into amino acids (remove non-amino acid characters)
+  const cleanSequence = sequence.replace(/[^ACDEFGHIKLMNPQRSTVWY]/g, "");
+  const aminoAcids = cleanSequence.split("");
+
+  const handleResidueClick = (position: number, shiftKey = false) => {
+    const newSelected = new Set(selectedResidues);
+
+    if (shiftKey && lastSelectedResidue !== null) {
+      // Range selection with shift key
+      const start = Math.min(lastSelectedResidue, position);
+      const end = Math.max(lastSelectedResidue, position);
+      for (let i = start; i <= end; i++) {
+        newSelected.add(i);
+      }
+    } else {
+      // Single selection or toggle
+      if (newSelected.has(position)) {
+        newSelected.delete(position);
+      } else {
+        newSelected.add(position);
+      }
+    }
+
+    setSelectedResidues(newSelected);
+    setLastSelectedResidue(position);
+
+    // Highlight selected residues in 3D viewer
+    highlightSelectedResidues(newSelected);
+  };
+
+  const highlightSelectedResidues = (selectedPositions: Set<number>) => {
+    if (!viewer) return;
+
+    // Clear previous selections
+    viewer.setStyle({}, { cartoon: { color: colorScheme } });
+
+    // Highlight selected residues
+    selectedPositions.forEach((position) => {
+      const sele = { resi: position };
+      viewer.setStyle(sele, { cartoon: { color: "#FFA500" } }); // Orange color for selection
+    });
+
+    // Re-apply nitrosylation highlighting
+    if (highlightNitrosylation) {
+      highlightNitrosylationSites(viewer);
+    }
+
+    viewer.render();
+  };
+
+  const clearSelection = () => {
+    setSelectedResidues(new Set());
+    if (viewer) {
+      viewer.setStyle({}, { cartoon: { color: colorScheme } });
+      if (highlightNitrosylation) {
+        highlightNitrosylationSites(viewer);
+      }
+      viewer.render();
+    }
+  };
 
   // Amino acid properties lookup
   const aminoAcidProperties = {
@@ -273,7 +345,6 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
       setIsLoading(false);
     }
   };
-
   const setupHoverInteractions = (viewerInstance: any) => {
     let hoverTimeout: NodeJS.Timeout;
 
@@ -305,10 +376,20 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
         if (hoverTimeout) {
           clearTimeout(hoverTimeout);
         }
-
         setTimeout(() => {
           setHoveredResidue(null);
         }, 100); // Small delay to prevent flickering
+      }
+    );
+
+    // Add click interaction for residue selection
+    viewerInstance.setClickable(
+      {},
+      true,
+      (atom: any, viewer: any, event: any) => {
+        if (atom && atom.resi) {
+          handleResidueClick(atom.resi, event?.shiftKey || false);
+        }
       }
     );
   };
@@ -499,9 +580,9 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                   <TooltipContent>
                     <div className="space-y-1 max-w-xs">
                       <p>
-                        Hover over the structure to see amino acid details in
-                        the side panel
-                      </p>{" "}
+                        Hover over the structure to see amino acid details.
+                        Click on residues to select them and see them highlighted in both the 3D structure and sequence view.
+                      </p>
                       {nitrosylationSites.length > 0 && (
                         <p className="text-xs text-red-500">
                           S-Nitrosylation sites are highlighted in red by
@@ -554,7 +635,7 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                     <SelectItem value="grey">Grey</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>{" "}
+              </div>
               {nitrosylationSites.length > 0 && (
                 <div className="flex items-center gap-2">
                   <label className="text-sm font-medium">
@@ -590,7 +671,7 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
               </div>
             </div>
 
-            {/* 3D Viewer with Side Panel */}
+            {/* Main content area with 3D viewer and side panel */}
             <div className="flex gap-4">
               {/* 3D Viewer - Takes most of the space */}
               <div className="flex-1 relative">
@@ -644,6 +725,14 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                           {nitrosylationSites.includes(hoveredResidue.resi) && (
                             <Badge variant="destructive" className="text-xs">
                               S-Nitrosylation Site
+                            </Badge>
+                          )}
+                          {selectedResidues.has(hoveredResidue.resi) && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs border-orange-500 text-orange-600"
+                            >
+                              Selected
                             </Badge>
                           )}
                         </div>
@@ -736,12 +825,144 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                           Hover over the protein structure to see residue
                           details
                         </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Click residues to select • Shift+click for range
+                          selection
+                        </p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </div>
             </div>
+
+            {/* Amino Acid Sequence Display - Integrated below the 3D viewer */}
+            {cleanSequence && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-lg font-semibold">Amino Acid Sequence</h3>
+                    {selectedResidues.size > 0 && (
+                      <Badge variant="outline" className="bg-orange-50 border-orange-200">
+                        {selectedResidues.size} residues selected
+                      </Badge>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={clearSelection}>
+                    Clear Selection
+                  </Button>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg border max-h-40 overflow-y-auto sequence-container">
+                  <div className="font-mono text-sm leading-relaxed">
+                    {aminoAcids.map((aa, index) => {
+                      const position = index + 1;
+                      const isSelected = selectedResidues.has(position);
+                      const isNitrosylation =
+                        nitrosylationSites.includes(position);
+                      const isHovered = hoveredResidue?.resi === position;
+
+                      return (
+                        <span
+                          key={index}
+                          data-position={position}
+                          className={`
+                            inline-block w-8 h-8 text-center leading-8 text-xs font-bold border border-gray-200 cursor-pointer transition-all margin-0.5
+                            ${
+                              isSelected
+                                ? "bg-orange-400 text-white border-orange-500 shadow-lg transform scale-110"
+                                : isNitrosylation
+                                ? "bg-red-200 text-red-800 border-red-300 hover:bg-red-300"
+                                : isHovered
+                                ? "bg-blue-200 text-blue-800 border-blue-300 shadow-md"
+                                : "bg-white text-gray-700 hover:bg-gray-100 hover:shadow-sm"
+                            }
+                            ${(index + 1) % 10 === 0 ? "mr-2" : ""}
+                            ${(index + 1) % 50 === 0 ? "mr-4" : ""}
+                          `}
+                          onClick={(e) =>
+                            handleResidueClick(position, e.shiftKey)
+                          }
+                          onMouseEnter={() => {
+                            // Optional: sync with 3D viewer hover
+                          }}
+                          title={`${aa}${position}${
+                            isNitrosylation ? " (S-Nitrosylation Site)" : ""
+                          }${isSelected ? " (Selected)" : ""}`}
+                        >
+                          {aa}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Position ruler every 50 residues */}
+                  <div className="mt-2 text-xs text-gray-400 font-mono">
+                    {Array.from(
+                      { length: Math.ceil(aminoAcids.length / 50) },
+                      (_, i) => (
+                        <span key={i} className="inline-block w-12 text-center">
+                          {(i + 1) * 50}
+                        </span>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                {/* Position indicators */}
+                <div className="flex justify-between text-xs text-gray-500 px-1">
+                  <span>Position 1</span>
+                  <span>Position {aminoAcids.length}</span>
+                </div>
+
+                {/* Selection info */}
+                {selectedResidues.size > 0 && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <h4 className="font-medium text-orange-800 text-sm">
+                          Selected Positions
+                        </h4>
+                        <p className="text-xs text-orange-700">
+                          {Array.from(selectedResidues)
+                            .sort((a, b) => a - b)
+                            .join(", ")}
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-orange-800 text-sm">
+                          Selected Sequence
+                        </h4>
+                        <p className="text-xs text-orange-700 font-mono">
+                          {Array.from(selectedResidues)
+                            .sort((a, b) => a - b)
+                            .map((pos) => cleanSequence[pos - 1] || "")
+                            .join("")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Legend */}
+                <div className="flex items-center gap-6 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-orange-400 border border-orange-500"></div>
+                    <span>Selected</span>
+                  </div>
+                  {nitrosylationSites.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <div className="w-4 h-4 bg-red-200 border border-red-300"></div>
+                      <span>S-Nitrosylation Site</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <div className="w-4 h-4 bg-blue-200 border border-blue-300"></div>
+                    <span>Hovered</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Instructions */}
             <div className="text-xs text-muted-foreground bg-muted p-3 rounded space-y-1">
@@ -751,11 +972,12 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
               </div>
               <div>
                 <strong>Interaction:</strong> Hover over any part of the protein
-                to see amino acid residue details in the side panel
+                to see amino acid residue details • Click on residues to select
+                them • Hold Shift and click for range selection
               </div>
             </div>
           </CardContent>
-        </Card>{" "}
+        </Card>
       </div>
     </TooltipProvider>
   );

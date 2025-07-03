@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProteinData } from "@/hooks/useProteinData";
 import { useProteinDisorder } from "@/hooks/useProteinDisorder";
+import { useFasta } from "@/hooks/useFasta";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ProteinViewer3D from "@/components/ProteinViewer3D";
@@ -98,6 +99,20 @@ const ProteinDetails = () => {
     isLoading: isLoadingDisorderData,
     error: disorderError,
   } = useProteinDisorder(protein?.uniprot_id || null, protein?.hsn_id || null);
+
+  // Fetch FASTA data for sequence display
+  const { data: fastaInfo } = useFasta(protein?.hsn_id || "");
+
+  // Extract sequence from FASTA data
+  const extractSequenceFromFasta = (fastaText: string): string => {
+    if (!fastaText) return "";
+    const lines = fastaText.split("\n");
+    return lines.slice(1).join("").replace(/\s/g, "");
+  };
+
+  const proteinSequence = fastaInfo?.fasta
+    ? extractSequenceFromFasta(fastaInfo.fasta)
+    : "";
 
   const handleCopyId = () => {
     if (protein?.hsn_id) {
@@ -705,6 +720,7 @@ const ProteinDetails = () => {
                   uniprotId={protein.uniprot_id}
                   alphafoldId={protein.alphafold_id}
                   proteinName={protein.protein_name}
+                  sequence={proteinSequence}
                   nitrosylationSites={
                     protein.positions_of_nitrosylation
                       ? protein.positions_of_nitrosylation
