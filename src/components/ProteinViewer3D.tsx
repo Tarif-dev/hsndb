@@ -581,7 +581,8 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
                     <div className="space-y-1 max-w-xs">
                       <p>
                         Hover over the structure to see amino acid details.
-                        Click on residues to select them and see them highlighted in both the 3D structure and sequence view.
+                        Click on residues to select them and see them
+                        highlighted in both the 3D structure and sequence view.
                       </p>
                       {nitrosylationSites.length > 0 && (
                         <p className="text-xs text-red-500">
@@ -841,9 +842,14 @@ const ProteinViewer3D: React.FC<ProteinViewer3DProps> = ({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <h3 className="text-lg font-semibold">Amino Acid Sequence</h3>
+                    <h3 className="text-lg font-semibold">
+                      Amino Acid Sequence
+                    </h3>
                     {selectedResidues.size > 0 && (
-                      <Badge variant="outline" className="bg-orange-50 border-orange-200">
+                      <Badge
+                        variant="outline"
+                        className="bg-orange-50 border-orange-200"
+                      >
                         {selectedResidues.size} residues selected
                       </Badge>
                     )}
