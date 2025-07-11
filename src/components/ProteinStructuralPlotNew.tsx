@@ -241,29 +241,153 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
   }, []);
 
   // Export functions
-  const exportPNG = () => {
+  const exportPNG = async () => {
     if (!svgRef.current) return;
 
-    const svgElement = svgRef.current;
-    const svgString = new XMLSerializer().serializeToString(svgElement);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
+    try {
+      const svgElement = svgRef.current;
 
-    canvas.width = width;
-    canvas.height = height;
+      // Clone the SVG to avoid modifying the original
+      const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
 
-    img.onload = () => {
-      ctx?.drawImage(img, 0, 0);
-      const pngFile = canvas.toDataURL("image/png");
+      // Get computed styles and inline them
+      const allElements = clonedSvg.querySelectorAll("*");
+      allElements.forEach((element) => {
+        const computedStyle = window.getComputedStyle(element as Element);
+        const inlineStyle = Array.from(computedStyle).reduce(
+          (acc, property) => {
+            return (
+              acc + `${property}:${computedStyle.getPropertyValue(property)};`
+            );
+          },
+          ""
+        );
+        (element as HTMLElement).style.cssText = inlineStyle;
+      });
 
-      const downloadLink = document.createElement("a");
-      downloadLink.download = `${data.uniprot_id}_structural_plot.png`;
-      downloadLink.href = pngFile;
-      downloadLink.click();
-    };
+      // Add font definitions to ensure text renders correctly
+      const fontStyle = document.createElement("style");
+      fontStyle.textContent = `
+        text { 
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; 
+          font-size: 11px;
+        }
+        .domain { stroke: #374151; stroke-width: 1; }
+        .tick line { stroke: #374151; stroke-width: 1; }
+        .tick text { fill: #374151; font-size: 11px; }
+        rect { stroke-width: 1; }
+        circle { stroke-width: 1; }
+        line { stroke-width: 1; }
+        path { stroke-width: 2; }
+      `;
+      clonedSvg.insertBefore(fontStyle, clonedSvg.firstChild);
 
-    img.src = "data:image/svg+xml;base64," + btoa(svgString);
+      // Convert to string
+      const serializer = new XMLSerializer();
+      let svgString = serializer.serializeToString(clonedSvg);
+
+      // Add XML declaration and ensure proper encoding
+      svgString = '<?xml version="1.0" encoding="UTF-8"?>' + svgString;
+
+      // Create canvas
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Could not get canvas context");
+
+      // Set canvas size with higher resolution for better quality
+      const scale = 2;
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+
+      // Scale the context to maintain aspect ratio
+      ctx.scale(scale, scale);
+
+      // Set white background
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, width, height);
+
+      // Create blob from SVG string
+      const svgBlob = new Blob([svgString], {
+        type: "image/svg+xml;charset=utf-8",
+      });
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      // Create image and draw to canvas
+      const img = new Image();
+
+      return new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          try {
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convert to PNG
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  reject(new Error("Failed to create PNG blob"));
+                  return;
+                }
+
+                // Download the image
+                const url = URL.createObjectURL(blob);
+                const downloadLink = document.createElement("a");
+                downloadLink.download = `${data.uniprot_id}_structural_plot.png`;
+                downloadLink.href = url;
+                downloadLink.click();
+
+                // Cleanup
+                URL.revokeObjectURL(url);
+                URL.revokeObjectURL(svgUrl);
+                resolve();
+              },
+              "image/png",
+              0.95
+            );
+          } catch (error) {
+            reject(error);
+          }
+        };
+
+        img.onerror = () => {
+          // Fallback: try simple method if advanced method fails
+          console.warn("Advanced PNG export failed, trying fallback method");
+          try {
+            const simpleCanvas = document.createElement("canvas");
+            const simpleCtx = simpleCanvas.getContext("2d");
+            if (!simpleCtx) throw new Error("Could not get canvas context");
+
+            simpleCanvas.width = width;
+            simpleCanvas.height = height;
+            simpleCtx.fillStyle = "white";
+            simpleCtx.fillRect(0, 0, width, height);
+
+            const fallbackImg = new Image();
+            fallbackImg.onload = () => {
+              simpleCtx.drawImage(fallbackImg, 0, 0);
+              const dataUrl = simpleCanvas.toDataURL("image/png", 0.95);
+
+              const downloadLink = document.createElement("a");
+              downloadLink.download = `${data.uniprot_id}_structural_plot.png`;
+              downloadLink.href = dataUrl;
+              downloadLink.click();
+
+              URL.revokeObjectURL(svgUrl);
+              resolve();
+            };
+            fallbackImg.onerror = () =>
+              reject(new Error("Both PNG export methods failed"));
+            fallbackImg.src = svgUrl;
+          } catch (fallbackError) {
+            reject(fallbackError);
+          }
+        };
+
+        img.src = svgUrl;
+      });
+    } catch (error) {
+      console.error("PNG export failed:", error);
+      alert("PNG export failed. Please try again or use a different browser.");
+    }
   };
 
   const exportCSV = () => {
@@ -309,6 +433,51 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
     downloadLink.click();
 
     URL.revokeObjectURL(url);
+  };
+
+  const exportSVG = () => {
+    if (!svgRef.current) return;
+
+    try {
+      const svgElement = svgRef.current;
+      const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
+
+      // Add font definitions for better compatibility
+      const fontStyle = document.createElement("style");
+      fontStyle.textContent = `
+        text { 
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif; 
+          font-size: 11px;
+        }
+        .domain { stroke: #374151; stroke-width: 1; }
+        .tick line { stroke: #374151; stroke-width: 1; }
+        .tick text { fill: #374151; font-size: 11px; }
+        rect { stroke-width: 1; }
+        circle { stroke-width: 1; }
+        line { stroke-width: 1; }
+        path { stroke-width: 2; }
+      `;
+      clonedSvg.insertBefore(fontStyle, clonedSvg.firstChild);
+
+      const serializer = new XMLSerializer();
+      let svgString = serializer.serializeToString(clonedSvg);
+      svgString = '<?xml version="1.0" encoding="UTF-8"?>' + svgString;
+
+      const blob = new Blob([svgString], {
+        type: "image/svg+xml;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = url;
+      downloadLink.download = `${data.uniprot_id}_structural_plot.svg`;
+      downloadLink.click();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("SVG export failed:", error);
+      alert("SVG export failed. Please try again.");
+    }
   };
 
   const resetZoom = () => {
@@ -1038,6 +1207,9 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={exportPNG}>
                     Export as PNG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportSVG}>
+                    Export as SVG
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={exportCSV}>
                     Export as CSV
