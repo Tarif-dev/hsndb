@@ -51,7 +51,7 @@ interface TooltipData {
 
 const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
   data,
-  height = 600,
+  height = 700,
   className = "",
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -63,7 +63,7 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
   const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
 
   // Layout constants - improved spacing and margins
-  const margin = { top: 60, right: 80, bottom: 100, left: 120 };
+  const margin = { top: 60, right: 60, bottom: 160, left: 150 };
   const width = containerWidth;
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -72,13 +72,23 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
   const trackHeight = 50;
   const plotHeight = 100;
   const trackSpacing = 20;
+  const legendHeight = 25;
 
-  // Y positions for each track - better spacing
+  // Y positions for each track - better spacing with legends
   const tracks = {
     nitrosylation: 0,
-    secondary: trackHeight + trackSpacing,
-    disorder: 2 * (trackHeight + trackSpacing),
-    accessibility: 2 * (trackHeight + trackSpacing) + plotHeight + trackSpacing,
+    nitrosylationLegend: trackHeight + 5,
+    secondary: trackHeight + legendHeight + trackSpacing,
+    secondaryLegend: 2 * trackHeight + legendHeight + trackSpacing + 5,
+    disorder: 2 * (trackHeight + legendHeight) + 2 * trackSpacing,
+    disorderLegend:
+      2 * (trackHeight + legendHeight) + 2 * trackSpacing + plotHeight + 5,
+    accessibility:
+      2 * (trackHeight + legendHeight) +
+      2 * trackSpacing +
+      plotHeight +
+      legendHeight +
+      trackSpacing,
   };
 
   // Color schemes
@@ -87,7 +97,7 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
 
   const structureColors = {
     "alpha-helix": "#EF4444", // Red
-    "beta-strand": "#10B981", // Green
+    "beta-strand": "#EAB308", // Yellow
     coil: "#9CA3AF", // Gray
   };
 
@@ -437,6 +447,43 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
           .on("mouseout", () => setTooltipData(null));
       });
 
+    // Nitrosylation track legend
+    const nitrosylationLegendGroup = g
+      .append("g")
+      .attr("transform", `translate(0, ${tracks.nitrosylationLegend})`);
+
+    nitrosylationLegendGroup
+      .append("rect")
+      .attr("x", 10)
+      .attr("y", 2)
+      .attr("width", 12)
+      .attr("height", 12)
+      .attr("fill", nitrosylationColor)
+      .attr("rx", 2);
+
+    nitrosylationLegendGroup
+      .append("text")
+      .attr("x", 28)
+      .attr("y", 12)
+      .attr("font-size", "11px")
+      .attr("fill", "#374151")
+      .text("S-nitrosylation site");
+
+    nitrosylationLegendGroup
+      .append("circle")
+      .attr("cx", 150)
+      .attr("cy", 8)
+      .attr("r", 6)
+      .attr("fill", cysteineColor);
+
+    nitrosylationLegendGroup
+      .append("text")
+      .attr("x", 165)
+      .attr("y", 12)
+      .attr("font-size", "11px")
+      .attr("fill", "#374151")
+      .text("Cysteine position");
+
     // 2. SECONDARY STRUCTURE TRACK
     const structureGroup = g
       .append("g")
@@ -506,6 +553,62 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
           } chars)`
         );
     }
+
+    // Secondary structure track legend
+    const secondaryLegendGroup = g
+      .append("g")
+      .attr("transform", `translate(0, ${tracks.secondaryLegend})`);
+
+    secondaryLegendGroup
+      .append("rect")
+      .attr("x", 10)
+      .attr("y", 2)
+      .attr("width", 15)
+      .attr("height", 12)
+      .attr("fill", structureColors["alpha-helix"])
+      .attr("rx", 1);
+
+    secondaryLegendGroup
+      .append("text")
+      .attr("x", 30)
+      .attr("y", 12)
+      .attr("font-size", "11px")
+      .attr("fill", "#374151")
+      .text("Helix (H)");
+
+    secondaryLegendGroup
+      .append("rect")
+      .attr("x", 90)
+      .attr("y", 2)
+      .attr("width", 15)
+      .attr("height", 12)
+      .attr("fill", structureColors["beta-strand"])
+      .attr("rx", 1);
+
+    secondaryLegendGroup
+      .append("text")
+      .attr("x", 110)
+      .attr("y", 12)
+      .attr("font-size", "11px")
+      .attr("fill", "#374151")
+      .text("Sheet (E)");
+
+    secondaryLegendGroup
+      .append("rect")
+      .attr("x", 175)
+      .attr("y", 2)
+      .attr("width", 15)
+      .attr("height", 12)
+      .attr("fill", structureColors["coil"])
+      .attr("rx", 1);
+
+    secondaryLegendGroup
+      .append("text")
+      .attr("x", 195)
+      .attr("y", 12)
+      .attr("font-size", "11px")
+      .attr("fill", "#374151")
+      .text("Coil (C)");
 
     // 3. DISORDER PLOT
     const disorderGroup = g
@@ -603,6 +706,48 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
           .curve(d3.curveMonotoneX)
       );
 
+    // Disorder plot legend
+    const disorderLegendGroup = g
+      .append("g")
+      .attr("transform", `translate(0, ${tracks.disorderLegend})`);
+
+    disorderLegendGroup
+      .append("rect")
+      .attr("x", 10)
+      .attr("y", 2)
+      .attr("width", 15)
+      .attr("height", 12)
+      .attr("fill", "#FEE2E2")
+      .attr("stroke", "#F97316")
+      .attr("stroke-width", 1)
+      .attr("rx", 1);
+
+    disorderLegendGroup
+      .append("text")
+      .attr("x", 30)
+      .attr("y", 12)
+      .attr("font-size", "11px")
+      .attr("fill", "#374151")
+      .text("Disordered (≥0.5)");
+
+    disorderLegendGroup
+      .append("rect")
+      .attr("x", 130)
+      .attr("y", 2)
+      .attr("width", 15)
+      .attr("height", 12)
+      .attr("fill", "#22D3EE")
+      .attr("fill-opacity", 0.3)
+      .attr("rx", 1);
+
+    disorderLegendGroup
+      .append("text")
+      .attr("x", 150)
+      .attr("y", 12)
+      .attr("font-size", "11px")
+      .attr("fill", "#374151")
+      .text("Ordered (<0.5)");
+
     // 4. SURFACE ACCESSIBILITY PLOT
     const accessibilityGroup = g
       .append("g")
@@ -669,6 +814,31 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
       })
       .on("mouseout", () => setTooltipData(null));
 
+    // Accessibility legend (simple line legend)
+    const accessibilityLegendGroup = g
+      .append("g")
+      .attr(
+        "transform",
+        `translate(0, ${tracks.accessibility + plotHeight + 10})`
+      );
+
+    accessibilityLegendGroup
+      .append("line")
+      .attr("x1", 10)
+      .attr("x2", 25)
+      .attr("y1", 8)
+      .attr("y2", 8)
+      .attr("stroke", "#3B82F6")
+      .attr("stroke-width", 2);
+
+    accessibilityLegendGroup
+      .append("text")
+      .attr("x", 30)
+      .attr("y", 12)
+      .attr("font-size", "11px")
+      .attr("fill", "#374151")
+      .text("Surface accessibility (SASA)");
+
     // X-axis for the bottom plot - improved styling
     const xAxis = d3
       .axisBottom(xScale)
@@ -717,34 +887,34 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
       .attr("font-size", "11px")
       .attr("fill", "#374151");
 
-    // Labels - improved positioning and styling
+    // Labels - improved positioning and styling (moved closer to prevent overflow)
     g.append("text")
-      .attr("x", -80)
+      .attr("x", -100)
       .attr("y", tracks.nitrosylation + trackHeight / 2)
       .attr("text-anchor", "middle")
       .attr("alignment-baseline", "middle")
-      .attr("font-size", "14px")
+      .attr("font-size", "13px")
       .attr("font-weight", "600")
       .attr("fill", "#374151")
-      .text("Nitrosylation sites");
+      .text("Nitrosylation");
 
     g.append("text")
-      .attr("x", -80)
+      .attr("x", -100)
       .attr("y", tracks.secondary + trackHeight / 2)
       .attr("text-anchor", "middle")
       .attr("alignment-baseline", "middle")
-      .attr("font-size", "14px")
+      .attr("font-size", "13px")
       .attr("font-weight", "600")
       .attr("fill", "#374151")
-      .text("Secondary structure");
+      .text("Structure");
 
     g.append("text")
       .attr(
         "transform",
-        `translate(-60, ${tracks.disorder + plotHeight / 2}) rotate(-90)`
+        `translate(-80, ${tracks.disorder + plotHeight / 2}) rotate(-90)`
       )
       .attr("text-anchor", "middle")
-      .attr("font-size", "14px")
+      .attr("font-size", "13px")
       .attr("font-weight", "600")
       .attr("fill", "#374151")
       .text("Disorder");
@@ -752,10 +922,10 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
     g.append("text")
       .attr(
         "transform",
-        `translate(-60, ${tracks.accessibility + plotHeight / 2}) rotate(-90)`
+        `translate(-80, ${tracks.accessibility + plotHeight / 2}) rotate(-90)`
       )
       .attr("text-anchor", "middle")
-      .attr("font-size", "14px")
+      .attr("font-size", "13px")
       .attr("font-weight", "600")
       .attr("fill", "#374151")
       .text("SASA");
@@ -959,69 +1129,6 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
                 )}
               </div>
             )}
-          </div>
-
-          {/* Legend */}
-          <div className="mt-6 space-y-4">
-            <div>
-              <h4 className="text-sm font-medium mb-2">
-                Nitrosylation & Cysteine Sites
-              </h4>
-              <div className="flex flex-wrap gap-4 text-xs">
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded"
-                    style={{ backgroundColor: nitrosylationColor }}
-                  ></div>
-                  <span>S-nitrosylation site</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: cysteineColor }}
-                  ></div>
-                  <span>Cysteine position</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-medium mb-2">
-                Disorder & Accessibility
-              </h4>
-              <div className="flex flex-wrap gap-4 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-orange-500 rounded"></div>
-                  <span>Disordered (≥0.5)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-cyan-400 rounded"></div>
-                  <span>Ordered (&lt;0.5)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                  <span>Surface accessibility (SASA)</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-medium mb-2">Secondary Structure</h4>
-              <div className="flex flex-wrap gap-4 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-red-500 rounded"></div>
-                  <span>Helix (H)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-                  <span>Sheet (E)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-gray-400 rounded"></div>
-                  <span>Coil (C)</span>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Selected Region Info */}

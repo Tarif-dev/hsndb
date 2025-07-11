@@ -858,7 +858,7 @@ const ProteinDetails = () => {
               {visualizationData ? (
                 <ProteinStructuralPlot
                   data={visualizationData}
-                  height={600}
+                  height={700}
                   className="w-full"
                 />
               ) : isLoadingVisualizationData ? (
