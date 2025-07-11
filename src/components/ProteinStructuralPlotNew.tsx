@@ -49,6 +49,17 @@ interface TooltipData {
   };
 }
 
+interface CrosshairData {
+  position: number;
+  x: number;
+  residue?: string;
+  disorder_score?: number;
+  sasa_value?: number;
+  is_nitrosylation?: boolean;
+  is_cysteine?: boolean;
+  structure_type?: string;
+}
+
 const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
   data,
   height = 700,
@@ -61,6 +72,9 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
     null
   );
   const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
+  const [crosshairData, setCrosshairData] = useState<CrosshairData | null>(
+    null
+  );
 
   // Layout constants - improved spacing and margins
   const margin = { top: 60, right: 60, bottom: 160, left: 150 };
@@ -1154,6 +1168,194 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
       });
 
     g.append("g").attr("class", "brush").call(brush);
+
+    // Add invisible overlay for crosshair tracking
+    const overlay = g
+      .append("rect")
+      .attr("class", "overlay")
+      .attr("x", 0)
+      .attr("y", -20)
+      .attr("width", innerWidth)
+      .attr("height", tracks.accessibility + plotHeight + 40)
+      .attr("fill", "none")
+      .attr("pointer-events", "all")
+      .style("cursor", "crosshair");
+
+    // Add crosshair group
+    const crosshairGroup = g
+      .append("g")
+      .attr("class", "crosshair")
+      .style("pointer-events", "none");
+
+    // Crosshair vertical line
+    const crosshairLine = crosshairGroup
+      .append("line")
+      .attr("class", "crosshair-line")
+      .attr("y1", -10)
+      .attr("y2", tracks.accessibility + plotHeight + 10)
+      .attr("stroke", "#ef4444")
+      .attr("stroke-width", 1)
+      .attr("stroke-dasharray", "3,3")
+      .attr("opacity", 0);
+
+    // Crosshair position label at top
+    const crosshairLabel = crosshairGroup
+      .append("g")
+      .attr("class", "crosshair-label");
+
+    const crosshairLabelBg = crosshairLabel
+      .append("rect")
+      .attr("y", -35)
+      .attr("height", 20)
+      .attr("fill", "#ef4444")
+      .attr("rx", 3)
+      .attr("opacity", 0);
+
+    const crosshairLabelText = crosshairLabel
+      .append("text")
+      .attr("y", -20)
+      .attr("text-anchor", "middle")
+      .attr("font-size", "11px")
+      .attr("font-weight", "600")
+      .attr("fill", "white")
+      .attr("opacity", 0);
+
+    // Crosshair position indicator circles
+    const crosshairDots = crosshairGroup
+      .append("g")
+      .attr("class", "crosshair-dots");
+
+    overlay
+      .on("mousemove", (event) => {
+        const [mouseX] = d3.pointer(event);
+        const position = Math.round(xScale.invert(mouseX));
+
+        // Check if position is within visible range
+        if (position < visibleRange.start || position > visibleRange.end) {
+          crosshairLine.attr("opacity", 0);
+          crosshairLabelBg.attr("opacity", 0);
+          crosshairLabelText.attr("opacity", 0);
+          crosshairDots.selectAll("*").remove();
+          setCrosshairData(null);
+          return;
+        }
+
+        const xPos = xScale(position);
+
+        // Update crosshair line
+        crosshairLine.attr("x1", xPos).attr("x2", xPos).attr("opacity", 0.8);
+
+        // Update position label
+        const labelText = `${position}`;
+        crosshairLabelText.attr("x", xPos).attr("opacity", 1).text(labelText);
+
+        // Update label background
+        const textWidth = labelText.length * 6 + 8;
+        crosshairLabelBg
+          .attr("x", xPos - textWidth / 2)
+          .attr("width", textWidth)
+          .attr("opacity", 0.9);
+
+        // Get data for this position
+        const residue = data.sequence ? data.sequence[position - 1] : "";
+        const disorderScore = disorderArray[position - 1] || 0;
+        const sasaValue = sasaArray[position - 1] || 0;
+        const isNitrosylation =
+          data.positions_of_nitrosylation.includes(position);
+        const isCysteine = data.cysteine_positions.includes(position);
+
+        // Get secondary structure at this position
+        const secondaryStructures = parseSecondaryStructure();
+        const structureAtPosition = secondaryStructures.find(
+          (struct) => position >= struct.start && position <= struct.end
+        );
+        const structureType = structureAtPosition
+          ? `${structureAtPosition.type
+              .charAt(0)
+              .toUpperCase()}${structureAtPosition.type.slice(1)}`
+          : "Coil";
+
+        // Clear previous dots
+        crosshairDots.selectAll("*").remove();
+
+        // Add indicator dots on each track
+        const dotRadius = 3;
+
+        // Nitrosylation track dot
+        crosshairDots
+          .append("circle")
+          .attr("cx", xPos)
+          .attr("cy", tracks.nitrosylation + trackHeight / 2)
+          .attr("r", dotRadius)
+          .attr(
+            "fill",
+            isNitrosylation
+              ? nitrosylationColor
+              : isCysteine
+              ? cysteineColor
+              : "#94A3B8"
+          )
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
+
+        // Secondary structure track dot
+        crosshairDots
+          .append("circle")
+          .attr("cx", xPos)
+          .attr("cy", tracks.secondary + trackHeight / 2)
+          .attr("r", dotRadius)
+          .attr(
+            "fill",
+            structureAtPosition
+              ? structureColors[structureAtPosition.type]
+              : "#9CA3AF"
+          )
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
+
+        // Disorder plot dot
+        crosshairDots
+          .append("circle")
+          .attr("cx", xPos)
+          .attr("cy", tracks.disorder + disorderScale(disorderScore))
+          .attr("r", dotRadius)
+          .attr("fill", "#F97316")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
+
+        // SASA plot dot
+        const normalizedSasaAtPosition = sasaValue / maxSasa;
+        crosshairDots
+          .append("circle")
+          .attr("cx", xPos)
+          .attr(
+            "cy",
+            tracks.accessibility + accessibilityScale(normalizedSasaAtPosition)
+          )
+          .attr("r", dotRadius)
+          .attr("fill", "#3B82F6")
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2);
+
+        // Update crosshair data for the info panel
+        setCrosshairData({
+          position,
+          x: mouseX,
+          residue,
+          disorder_score: disorderScore,
+          sasa_value: sasaValue,
+          is_nitrosylation: isNitrosylation,
+          is_cysteine: isCysteine,
+          structure_type: structureType,
+        });
+      })
+      .on("mouseleave", () => {
+        crosshairLine.attr("opacity", 0);
+        crosshairLabelBg.attr("opacity", 0);
+        crosshairLabelText.attr("opacity", 0);
+        crosshairDots.selectAll("*").remove();
+        setCrosshairData(null);
+      });
   }, [data, selectedRegion, height, innerWidth, innerHeight, containerWidth]);
 
   // Calculate statistics
@@ -1262,6 +1464,65 @@ const ProteinStructuralPlot: React.FC<ProteinStructuralPlotProps> = ({
               height={height}
               className="border rounded-lg bg-white w-full"
             />
+
+            {/* Crosshair Info Panel */}
+            {crosshairData && (
+              <div
+                className="absolute z-20 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 pointer-events-none"
+                style={{
+                  left: Math.min(crosshairData.x + 20, containerWidth - 200),
+                  top: 20,
+                  minWidth: "180px",
+                }}
+              >
+                <div className="text-sm font-semibold text-gray-800 mb-1">
+                  Position {crosshairData.position}
+                </div>
+                <div className="space-y-1 text-xs">
+                  {crosshairData.residue && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Residue:</span>
+                      <span className="font-mono font-semibold">
+                        {crosshairData.residue}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Disorder:</span>
+                    <span className="font-mono">
+                      {crosshairData.disorder_score?.toFixed(3) || "0.000"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">SASA:</span>
+                    <span className="font-mono">
+                      {crosshairData.sasa_value?.toFixed(1) || "0.0"} Ų
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Structure:</span>
+                    <span className="font-mono">
+                      {crosshairData.structure_type || "Coil"}
+                    </span>
+                  </div>
+                  {crosshairData.is_nitrosylation && (
+                    <div className="flex items-center gap-1 text-yellow-700 bg-yellow-50 px-2 py-1 rounded">
+                      <div className="w-2 h-2 bg-yellow-500 rounded"></div>
+                      <span className="text-xs font-medium">
+                        S-Nitrosylation
+                      </span>
+                    </div>
+                  )}
+                  {crosshairData.is_cysteine &&
+                    !crosshairData.is_nitrosylation && (
+                      <div className="flex items-center gap-1 text-orange-700 bg-orange-50 px-2 py-1 rounded">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <span className="text-xs font-medium">Cysteine</span>
+                      </div>
+                    )}
+                </div>
+              </div>
+            )}
 
             {/* Tooltip */}
             {tooltipData && (
