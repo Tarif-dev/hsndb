@@ -9,14 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Beaker,
-  Brain,
+  Microscope,
+  Cpu,
   BarChart3,
   Database,
   ArrowRight,
-  CheckCircle,
-  Zap,
-  Info,
+  CheckCircle2,
+  Activity,
+  InfoIcon,
 } from "lucide-react";
 
 type DatabaseType = "experimental" | "motif";
@@ -47,7 +47,7 @@ const UnifiedBrowse = () => {
       subtitle:
         "S-nitrosylation sites validated through laboratory experiments",
       count: "4,533",
-      icon: Beaker,
+      icon: Microscope,
       color: "bg-blue-500",
       lightColor: "bg-blue-50",
       borderColor: "border-blue-200",
@@ -66,7 +66,7 @@ const UnifiedBrowse = () => {
       subtitle:
         "Computationally predicted S-nitrosylation sites using motif analysis",
       count: "14,188",
-      icon: Brain,
+      icon: Cpu,
       color: "bg-purple-500",
       lightColor: "bg-purple-50",
       borderColor: "border-purple-200",
@@ -162,7 +162,7 @@ const UnifiedBrowse = () => {
                               key={idx}
                               className="flex items-center text-sm text-gray-600"
                             >
-                              <CheckCircle className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                              <CheckCircle2 className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                               {feature}
                             </div>
                           ))}
@@ -174,13 +174,13 @@ const UnifiedBrowse = () => {
                             className={`${info.lightColor} ${info.textColor} border-0`}
                           >
                             {key === "experimental"
-                              ? "Experimental Validation"
-                              : "Motif Analysis"}
+                              ? "Validated Data"
+                              : "Computational Analysis"}
                           </Badge>
 
                           {isActive && (
                             <div className="flex items-center text-sm text-gray-500">
-                              <Zap className="h-4 w-4 mr-1" />
+                              <Activity className="h-4 w-4 mr-1" />
                               Currently viewing
                             </div>
                           )}
@@ -211,8 +211,8 @@ const UnifiedBrowse = () => {
                   <div className="text-sm text-gray-600">Human Proteome</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">Latest</div>
-                  <div className="text-sm text-gray-600">2024 Data</div>
+                  <div className="text-2xl font-bold text-gray-900">2024</div>
+                  <div className="text-sm text-gray-600">Latest Update</div>
                 </div>
               </div>
             </div>
@@ -231,21 +231,21 @@ const UnifiedBrowse = () => {
                   value="experimental"
                   className="data-[state=active]:bg-blue-500 data-[state=active]:text-white"
                 >
-                  <Beaker className="h-4 w-4 mr-2" />
+                  <Microscope className="h-4 w-4 mr-2" />
                   Experimental ({databaseInfo.experimental.count})
                 </TabsTrigger>
                 <TabsTrigger
                   value="motif"
                   className="data-[state=active]:bg-purple-500 data-[state=active]:text-white"
                 >
-                  <Brain className="h-4 w-4 mr-2" />
+                  <Cpu className="h-4 w-4 mr-2" />
                   Motif-Based ({databaseInfo.motif.count})
                 </TabsTrigger>
               </TabsList>
 
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="flex items-center text-sm text-gray-500">
-                  <Info className="h-4 w-4 mr-1" />
+                  <InfoIcon className="h-4 w-4 mr-1" />
                   Switch between databases using the tabs
                 </div>
 
