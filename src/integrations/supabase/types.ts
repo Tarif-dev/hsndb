@@ -186,6 +186,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      protein_visualization_data: {
+        Row: {
+          id: number;
+          uniprot_id: string;
+          source: string;
+          sequence: string | null;
+          secondary_structure: string | null;
+          length: number;
+          cysteine_positions: number[] | null;
+          sasa_values: Json | null;
+          disorder_scores: Json | null;
+          positions_of_nitrosylation: Json | null;
+          protein_name: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          uniprot_id: string;
+          source: string;
+          sequence?: string | null;
+          secondary_structure?: string | null;
+          length: number;
+          cysteine_positions?: number[] | null;
+          sasa_values?: Json | null;
+          disorder_scores?: Json | null;
+          positions_of_nitrosylation?: Json | null;
+          protein_name?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: number;
+          uniprot_id?: string;
+          source?: string;
+          sequence?: string | null;
+          secondary_structure?: string | null;
+          length?: number;
+          cysteine_positions?: number[] | null;
+          sasa_values?: Json | null;
+          disorder_scores?: Json | null;
+          positions_of_nitrosylation?: Json | null;
+          protein_name?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

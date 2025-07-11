@@ -7,18 +7,19 @@ import {
   Share2,
   Copy,
   ChevronDown,
+  Info,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProteinData } from "@/hooks/useProteinData";
-import { useProteinDisorder } from "@/hooks/useProteinDisorder";
 import { useFasta } from "@/hooks/useFasta";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import ProteinViewer3D from "@/components/ProteinViewer3D";
 import NetworkVisualization from "@/components/NetworkVisualization";
 import FastaSequence from "@/components/FastaSequence";
-import ProteinDisorderPlot from "@/components/ProteinDisorderPlot";
+import ProteinStructuralPlot from "@/components/ProteinStructuralPlotNew";
+import { useProteinVisualizationDataNew } from "@/hooks/useProteinVisualizationDataNew";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -93,12 +94,12 @@ const ProteinDetails = () => {
     isLoading: isLoadingExternalData,
   } = useProteinData(protein?.uniprot_id || "", !!protein?.uniprot_id);
 
-  // Fetch disorder prediction data
+  // Fetch comprehensive visualization data
   const {
-    data: disorderData,
-    isLoading: isLoadingDisorderData,
-    error: disorderError,
-  } = useProteinDisorder(protein?.uniprot_id || null, protein?.hsn_id || null);
+    data: visualizationData,
+    isLoading: isLoadingVisualizationData,
+    error: visualizationError,
+  } = useProteinVisualizationDataNew(protein?.uniprot_id || undefined);
 
   // Fetch FASTA data for sequence display
   const { data: fastaInfo } = useFasta(protein?.hsn_id || "");
@@ -486,7 +487,7 @@ const ProteinDetails = () => {
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="structure">Structure</TabsTrigger>
-              <TabsTrigger value="disorder">Disorder</TabsTrigger>
+              <TabsTrigger value="disorder">Structural Analysis</TabsTrigger>
               <TabsTrigger value="function">Function</TabsTrigger>
               <TabsTrigger value="interactions">Interactions</TabsTrigger>
             </TabsList>
@@ -582,8 +583,18 @@ const ProteinDetails = () => {
                           Disorder Percentage
                         </label>
                         <p className="text-lg">
-                          {disorderData?.percentageDisorder
-                            ? `${disorderData.percentageDisorder.toFixed(1)}%`
+                          {visualizationData?.disorder_scores
+                            ? (() => {
+                                const scores = Object.values(
+                                  visualizationData.disorder_scores
+                                );
+                                const disorderedCount = scores.filter(
+                                  (score) => score >= 0.5
+                                ).length;
+                                const percentage =
+                                  (disorderedCount / scores.length) * 100;
+                                return `${percentage.toFixed(1)}%`;
+                              })()
                             : "N/A"}
                         </p>
                       </div>
@@ -844,19 +855,19 @@ const ProteinDetails = () => {
             </TabsContent>
 
             <TabsContent value="disorder" className="space-y-6">
-              {disorderData ? (
-                <ProteinDisorderPlot
-                  data={disorderData}
-                  height={500}
+              {visualizationData ? (
+                <ProteinStructuralPlot
+                  data={visualizationData}
+                  height={600}
                   className="w-full"
                 />
-              ) : isLoadingDisorderData ? (
+              ) : isLoadingVisualizationData ? (
                 <Card>
                   <CardContent className="flex items-center justify-center py-12">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                       <p className="text-sm text-muted-foreground">
-                        Loading disorder prediction data...
+                        Loading protein structural data...
                       </p>
                     </div>
                   </CardContent>
@@ -864,22 +875,22 @@ const ProteinDetails = () => {
               ) : (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Disorder Prediction Not Available</CardTitle>
+                    <CardTitle>Structural Data Not Available</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-8">
                       <p className="text-muted-foreground mb-4">
-                        Disorder prediction data is not available for this
-                        protein.
+                        Structural and disorder prediction data is not available
+                        for this protein.
                       </p>
                       <div className="space-y-2 text-sm text-muted-foreground">
                         <p>• UniProt ID: {protein?.uniprot_id || "N/A"}</p>
                         <p>• HSN ID: {protein?.hsn_id}</p>
                       </div>
-                      {disorderError && (
+                      {visualizationError && (
                         <div className="mt-4 p-3 bg-red-50 rounded-lg">
                           <p className="text-sm text-red-600">
-                            Error loading disorder data: {disorderError.message}
+                            Error loading data: {visualizationError?.message}
                           </p>
                         </div>
                       )}
