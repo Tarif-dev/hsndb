@@ -40,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import CancerMutationInfo from "@/components/CancerMutationInfo";
+import StructuralClassification from "@/components/StructuralClassification";
 
 const ProteinDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -720,6 +721,25 @@ const ProteinDetails = () => {
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+
+              {/* Structural Classification Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent flex-1"></div>
+                  <h3 className="text-lg font-semibold text-center">
+                    Protein Structural Classification
+                  </h3>
+                  <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent flex-1"></div>
+                </div>
+                <p className="text-sm text-muted-foreground text-center max-w-4xl mx-auto">
+                  Structural classification data from SCOP (Structural
+                  Classification of Proteins) and CATH (Class, Architecture,
+                  Topology, Homology) databases, providing hierarchical
+                  organization of protein structures based on their fold
+                  similarities and evolutionary relationships.
+                </p>
+                <StructuralClassification uniprotId={protein.uniprot_id} />
               </div>
             </TabsContent>
 
