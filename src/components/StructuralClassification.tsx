@@ -9,6 +9,10 @@ interface StructuralClassificationProps {
   uniprotId: string;
 }
 
+interface StructuralClassificationSectionProps {
+  uniprotId: string;
+}
+
 const ScopCard: React.FC<{ data: any[] }> = ({ data }) => {
   if (!data || data.length === 0) {
     return (
@@ -371,6 +375,11 @@ const StructuralClassification: React.FC<StructuralClassificationProps> = ({
 
   const isLoading = scopLoading || cathLoading;
 
+  // Check if we have any data
+  const hasScopData = scopData && scopData.length > 0;
+  const hasCathData = cathData && cathData.length > 0;
+  const hasAnyData = hasScopData || hasCathData;
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -411,61 +420,119 @@ const StructuralClassification: React.FC<StructuralClassificationProps> = ({
     );
   }
 
+  // If no data in either database, show a message
+  if (!hasAnyData) {
+    return (
+      <div className="text-center py-12">
+        <Database className="h-16 w-16 mx-auto mb-4 opacity-40 text-muted-foreground" />
+        <h3 className="text-lg font-medium text-foreground mb-2">
+          No Structural Classification Data Available
+        </h3>
+        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+          This protein is not currently classified in either the SCOP or CATH
+          databases. Classification data may be added in future database
+          updates.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* SCOP Classification */}
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-blue-600" />
-            SCOP Classification
-            <a
-              href="https://scop.mrc-lmb.cam.ac.uk/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto"
-              title="Visit SCOP database"
-            >
-              <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
-            </a>
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Structural Classification of Proteins - hierarchical classification
-            based on protein fold
-          </p>
-        </CardHeader>
-        <CardContent>
-          <ScopCard data={scopData || []} />
-        </CardContent>
-      </Card>
+      {/* SCOP Classification - Only show if has data */}
+      {hasScopData && (
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-blue-600" />
+              SCOP Classification
+              <a
+                href="https://scop.mrc-lmb.cam.ac.uk/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto"
+                title="Visit SCOP database"
+              >
+                <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
+              </a>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Structural Classification of Proteins - hierarchical
+              classification based on protein fold
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ScopCard data={scopData} />
+          </CardContent>
+        </Card>
+      )}
 
-      {/* CATH Classification */}
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-emerald-600" />
-            CATH Classification
-            <a
-              href="https://www.cathdb.info/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto"
-              title="Visit CATH database"
-            >
-              <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
-            </a>
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Class, Architecture, Topology, Homology - domain-based structural
-            classification
-          </p>
-        </CardHeader>
-        <CardContent>
-          <CathCard data={cathData || []} />
-        </CardContent>
-      </Card>
+      {/* CATH Classification - Only show if has data */}
+      {hasCathData && (
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-emerald-600" />
+              CATH Classification
+              <a
+                href="https://www.cathdb.info/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-auto"
+                title="Visit CATH database"
+              >
+                <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
+              </a>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Class, Architecture, Topology, Homology - domain-based structural
+              classification
+            </p>
+          </CardHeader>
+          <CardContent>
+            <CathCard data={cathData} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
 
-export default StructuralClassification;
+const StructuralClassificationSection: React.FC<
+  StructuralClassificationSectionProps
+> = ({ uniprotId }) => {
+  const { data: scopData, isLoading: scopLoading } = useScopData(uniprotId);
+  const { data: cathData, isLoading: cathLoading } = useCathData(uniprotId);
+
+  const isLoading = scopLoading || cathLoading;
+  const hasScopData = scopData && scopData.length > 0;
+  const hasCathData = cathData && cathData.length > 0;
+  const hasAnyData = hasScopData || hasCathData;
+
+  // Don't render the section at all if loading or no data
+  if (isLoading || !hasAnyData) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent flex-1"></div>
+        <h3 className="text-lg font-semibold text-center">
+          Protein Structural Classification
+        </h3>
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent flex-1"></div>
+      </div>
+      <p className="text-sm text-muted-foreground text-center max-w-4xl mx-auto">
+        Structural classification data from SCOP (Structural Classification of
+        Proteins) and CATH (Class, Architecture, Topology, Homology) databases,
+        providing hierarchical organization of protein structures based on their
+        fold similarities and evolutionary relationships.
+      </p>
+      <StructuralClassification uniprotId={uniprotId} />
+    </div>
+  );
+};
+
+export default StructuralClassificationSection;
+export { StructuralClassification };
