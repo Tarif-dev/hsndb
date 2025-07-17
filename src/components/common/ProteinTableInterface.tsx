@@ -35,8 +35,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useCancerTypes } from "@/hooks/useCancerTypes";
+import {
+  useScopFilterOptions,
+  useCathFilterOptions,
+  useCathNumericalFilters,
+} from "@/hooks/useScopCathFilters";
 import { ErrorBoundary } from "react-error-boundary";
-import ProteinFilters from "./ProteinFilters";
+import ProteinFilters from "./ProteinFiltersNew";
 
 // Define the common properties shared by different protein types
 interface BaseProtein {
@@ -91,11 +96,43 @@ const ProteinTableInterface = ({
     cancerSites: [] as string[],
     totalSites: [] as string[],
     cancerTypes: [] as string[],
+    // SCOP filters
+    scopClasses: [] as string[],
+    scopFolds: [] as string[],
+    scopSuperfamilies: [] as string[],
+    scopFamilies: [] as string[],
+    scopProteinTypes: [] as string[],
+    // CATH filters
+    cathClasses: [] as string[],
+    cathArchitectures: [] as string[],
+    cathTopologies: [] as string[],
+    cathSuperfamilies: [] as string[],
+    cathSources: [] as string[],
+    cathAssignments: [] as string[],
+    cathOrganisms: [] as string[],
+    cathPackings: [] as string[],
+    cathLengthRanges: [] as string[],
+    cathSseRanges: [] as string[],
+    cathPercentRanges: [] as string[],
+    cathPldtRanges: [] as string[],
+    cathLur: [] as string[],
   });
 
   // Fetch cancer types from database
   const { data: cancerTypesFromDB, isLoading: isLoadingCancerTypes } =
     useCancerTypes();
+
+  // Fetch SCOP filter options
+  const { data: scopOptions, isLoading: isLoadingScopOptions } =
+    useScopFilterOptions();
+
+  // Fetch CATH filter options
+  const { data: cathOptions, isLoading: isLoadingCathOptions } =
+    useCathFilterOptions();
+
+  // Fetch CATH numerical filter options
+  const { data: cathNumericalOptions, isLoading: isLoadingCathNumerical } =
+    useCathNumericalFilters();
 
   // Debounce search query
   useEffect(() => {
@@ -125,6 +162,56 @@ const ProteinTableInterface = ({
       totalSites: filters.totalSites[0] || undefined,
       cancerTypes:
         filters.cancerTypes.length > 0 ? filters.cancerTypes : undefined,
+      // SCOP filters
+      scopClasses:
+        filters.scopClasses.length > 0 ? filters.scopClasses : undefined,
+      scopFolds: filters.scopFolds.length > 0 ? filters.scopFolds : undefined,
+      scopSuperfamilies:
+        filters.scopSuperfamilies.length > 0
+          ? filters.scopSuperfamilies
+          : undefined,
+      scopFamilies:
+        filters.scopFamilies.length > 0 ? filters.scopFamilies : undefined,
+      scopProteinTypes:
+        filters.scopProteinTypes.length > 0
+          ? filters.scopProteinTypes
+          : undefined,
+      // CATH filters
+      cathClasses:
+        filters.cathClasses.length > 0 ? filters.cathClasses : undefined,
+      cathArchitectures:
+        filters.cathArchitectures.length > 0
+          ? filters.cathArchitectures
+          : undefined,
+      cathTopologies:
+        filters.cathTopologies.length > 0 ? filters.cathTopologies : undefined,
+      cathSuperfamilies:
+        filters.cathSuperfamilies.length > 0
+          ? filters.cathSuperfamilies
+          : undefined,
+      cathSources:
+        filters.cathSources.length > 0 ? filters.cathSources : undefined,
+      cathAssignments:
+        filters.cathAssignments.length > 0
+          ? filters.cathAssignments
+          : undefined,
+      cathOrganisms:
+        filters.cathOrganisms.length > 0 ? filters.cathOrganisms : undefined,
+      cathPackings:
+        filters.cathPackings.length > 0 ? filters.cathPackings : undefined,
+      cathLengthRanges:
+        filters.cathLengthRanges.length > 0
+          ? filters.cathLengthRanges
+          : undefined,
+      cathSseRanges:
+        filters.cathSseRanges.length > 0 ? filters.cathSseRanges : undefined,
+      cathPercentRanges:
+        filters.cathPercentRanges.length > 0
+          ? filters.cathPercentRanges
+          : undefined,
+      cathPldtRanges:
+        filters.cathPldtRanges.length > 0 ? filters.cathPldtRanges : undefined,
+      cathLur: filters.cathLur.length > 0 ? filters.cathLur : undefined,
     },
     sortBy,
     page: currentPage,
@@ -169,12 +256,39 @@ const ProteinTableInterface = ({
       setRenderError(err as Error);
     }
   }, [results, totalResults, isLoading, error]);
-  // Create filter options with dynamic cancer types
+  // Create filter options with dynamic cancer types and structural data
   const filterOptions = {
     cancerSites: ["Yes", "No"],
     totalSites: ["1", "2", "3-5", "6-10", "11+"],
     cancerTypes: cancerTypesFromDB || [],
+    // SCOP options
+    scopClasses: scopOptions?.classNames || [],
+    scopFolds: scopOptions?.foldNames || [],
+    scopSuperfamilies: scopOptions?.superfamilyNames || [],
+    scopFamilies: scopOptions?.familyNames || [],
+    scopProteinTypes: scopOptions?.proteinTypes || [],
+    // CATH options
+    cathClasses: cathOptions?.cathClasses || [],
+    cathArchitectures: cathOptions?.cathArchitectures || [],
+    cathTopologies: cathOptions?.cathTopologies || [],
+    cathSuperfamilies: cathOptions?.cathSuperfamilies || [],
+    cathSources: cathOptions?.sources || [],
+    cathAssignments: cathOptions?.assignments || [],
+    cathOrganisms: cathOptions?.organisms || [],
+    cathPackings: cathOptions?.packings || [],
+    // CATH numerical ranges
+    cathLengthRanges: cathNumericalOptions?.lengthRanges || [],
+    cathSseRanges: cathNumericalOptions?.sseRanges || [],
+    cathPercentRanges: cathNumericalOptions?.percentRanges || [],
+    cathPldtRanges: cathNumericalOptions?.pldtRanges || [],
+    cathLur: cathNumericalOptions?.lurOptions || [],
   };
+
+  const isLoadingFilterOptions =
+    isLoadingCancerTypes ||
+    isLoadingScopOptions ||
+    isLoadingCathOptions ||
+    isLoadingCathNumerical;
 
   const toggleFilter = (category: keyof typeof filters, value: string) => {
     setFilters((prev) => ({
@@ -191,6 +305,26 @@ const ProteinTableInterface = ({
       cancerSites: [],
       totalSites: [],
       cancerTypes: [],
+      // SCOP filters
+      scopClasses: [],
+      scopFolds: [],
+      scopSuperfamilies: [],
+      scopFamilies: [],
+      scopProteinTypes: [],
+      // CATH filters
+      cathClasses: [],
+      cathArchitectures: [],
+      cathTopologies: [],
+      cathSuperfamilies: [],
+      cathSources: [],
+      cathAssignments: [],
+      cathOrganisms: [],
+      cathPackings: [],
+      cathLengthRanges: [],
+      cathSseRanges: [],
+      cathPercentRanges: [],
+      cathPldtRanges: [],
+      cathLur: [],
     });
     setCurrentPage(1);
   };
@@ -286,7 +420,7 @@ const ProteinTableInterface = ({
             <ProteinFilters
               filters={filters}
               filterOptions={filterOptions}
-              isLoadingCancerTypes={isLoadingCancerTypes}
+              isLoadingCancerTypes={isLoadingFilterOptions}
               onToggleFilter={toggleFilter}
               onClearAllFilters={clearAllFilters}
             />
@@ -324,7 +458,7 @@ const ProteinTableInterface = ({
                   <ProteinFilters
                     filters={filters}
                     filterOptions={filterOptions}
-                    isLoadingCancerTypes={isLoadingCancerTypes}
+                    isLoadingCancerTypes={isLoadingFilterOptions}
                     onToggleFilter={toggleFilter}
                     onClearAllFilters={clearAllFilters}
                   />
