@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
-  Filter,
   Download,
   BookOpen,
   BarChart3,
@@ -16,12 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -46,6 +39,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useCancerTypes } from "@/hooks/useCancerTypes";
 import { ErrorBoundary } from "react-error-boundary";
+import ProteinFilters from "./ProteinFilters";
 
 // Define the common properties shared by different protein types
 interface BaseProtein {
@@ -203,13 +197,6 @@ const ProteinTableInterface = ({
     });
     setCurrentPage(1);
   };
-
-  const getActiveFiltersCount = () => {
-    return Object.values(filters).reduce(
-      (sum, filterArray) => sum + filterArray.length,
-      0
-    );
-  };
   const getCancerBadgeVariant = (cancerCausing: boolean) => {
     return cancerCausing ? "destructive" : "secondary";
   };
@@ -295,452 +282,400 @@ const ProteinTableInterface = ({
             {!isLoading && `(${totalResults.toLocaleString()} proteins)`}
           </p>
         </div>
-        <div className="space-y-6">
-          {/* Search and Filter Card */}
-          <Card>
-            {" "}
-            <CardContent className="p-6">
-              <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Search proteins, UniProt IDs, or keywords..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-                    className="pl-10"
-                  />
-                </div>
-                <Button
-                  className="bg-blue-600 hover:bg-blue-700"
-                  onClick={handleSearch}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Searching..." : "Search"}
-                </Button>
-              </div>
 
-              {/* Filter and Control Options */}
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                {/* Left side: Filter, Sort by, Show */}
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  {/* Filter Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-full sm:w-auto">
-                        <Filter className="h-4 w-4 mr-2" />
-                        Filters
-                        {getActiveFiltersCount() > 0 && (
-                          <Badge variant="secondary" className="ml-2">
-                            {getActiveFiltersCount()}
-                          </Badge>
-                        )}
-                        <ChevronDown className="h-4 w-4 ml-2" />
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Filter Sidebar for Desktop / Sheet for Mobile */}
+          <ProteinFilters
+            filters={filters}
+            filterOptions={filterOptions}
+            isLoadingCancerTypes={isLoadingCancerTypes}
+            onToggleFilter={toggleFilter}
+            onClearAllFilters={clearAllFilters}
+          />
+
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0 space-y-6">
+            {/* Search and Controls Card */}
+            <Card>
+              <CardContent className="p-6">
+                {/* Search Section - Full Width */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Search proteins, UniProt IDs, or keywords..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+                      className="pl-10 w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Control Options */}
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  {/* Left side: Mobile Filter, Sort by, Show, Search Button */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
+                    {/* Mobile Filter Button */}
+                    <div className="lg:hidden flex-shrink-0">
+                      <ProteinFilters
+                        filters={filters}
+                        filterOptions={filterOptions}
+                        isLoadingCancerTypes={isLoadingCancerTypes}
+                        onToggleFilter={toggleFilter}
+                        onClearAllFilters={clearAllFilters}
+                      />
+                    </div>
+
+                    {/* Search Button */}
+                    <Button
+                      className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
+                      onClick={handleSearch}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Searching..." : "Search"}
+                    </Button>
+
+                    {/* Sort by dropdown */}
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <label className="text-sm text-gray-600 whitespace-nowrap">
+                        Sort by:
+                      </label>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="text-sm border border-gray-300 rounded px-2 py-1 min-w-0"
+                      >
+                        <option value="relevance">Relevance</option>
+                        <option value="hsn_id">HSN ID</option>
+                        <option value="gene_name">Gene Name</option>
+                        <option value="total_sites">Total Sites</option>
+                        <option value="protein_length">Length</option>
+                      </select>
+                    </div>
+
+                    {/* Items per page */}
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <span className="text-sm text-gray-500 whitespace-nowrap">
+                        Show:
+                      </span>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) =>
+                          setItemsPerPage(Number(e.target.value))
+                        }
+                        className="text-sm border border-gray-300 rounded px-2 py-1 min-w-0"
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Right side: Action buttons */}
+                  <div className="flex space-x-2 flex-shrink-0">
+                    <Button variant="outline" size="sm">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Analyze
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Results Header */}
+            <div className="flex justify-between items-center">
+              <p className="text-gray-600">
+                {isLoading ? (
+                  "Loading..."
+                ) : (
+                  <>
+                    Showing{" "}
+                    <span className="font-semibold">
+                      {totalResults === 0
+                        ? 0
+                        : (currentPage - 1) * itemsPerPage + 1}
+                      -{Math.min(currentPage * itemsPerPage, totalResults)}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-semibold">
+                      {totalResults.toLocaleString()}
+                    </span>{" "}
+                    results
+                  </>
+                )}
+              </p>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-green-50 text-green-800">
+                  {badgeText}
+                </Badge>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <InfoIcon className="h-4 w-4 text-gray-500" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-80 max-h-96 overflow-y-auto">
-                      <div className="p-4 space-y-6">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold">Filters</span>
-                          {getActiveFiltersCount() > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={clearAllFilters}
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Clear All
-                            </Button>
-                          )}
-                        </div>
-
-                        {Object.entries(filterOptions).map(
-                          ([category, options]) => (
-                            <div key={category}>
-                              {" "}
-                              <label className="text-sm font-medium text-gray-700 mb-3 block capitalize">
-                                {category === "cancerSites"
-                                  ? "Cancer Causing"
-                                  : category === "totalSites"
-                                  ? "Total Sites"
-                                  : category === "cancerTypes"
-                                  ? "Cancer Types"
-                                  : category}
-                              </label>
-                              <div className="space-y-2 max-h-32 overflow-y-auto">
-                                {category === "cancerTypes" &&
-                                isLoadingCancerTypes ? (
-                                  <div className="flex items-center justify-center py-2">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                                    <span className="ml-2 text-sm text-gray-500">
-                                      Loading...
-                                    </span>
-                                  </div>
-                                ) : (
-                                  options.map((option) => (
-                                    <label
-                                      key={option}
-                                      className="flex items-center space-x-2 cursor-pointer"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        className="rounded"
-                                        checked={filters[
-                                          category as keyof typeof filters
-                                        ].includes(option)}
-                                        onChange={() =>
-                                          toggleFilter(
-                                            category as keyof typeof filters,
-                                            option
-                                          )
-                                        }
-                                      />
-                                      <span className="text-sm text-gray-600">
-                                        {option}
-                                      </span>
-                                    </label>
-                                  ))
-                                )}
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>{" "}
-                  {/* Sort by dropdown */}
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm text-gray-600 whitespace-nowrap">
-                      Sort by:
-                    </label>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
-                    >
-                      {" "}
-                      <option value="relevance">Relevance</option>
-                      <option value="hsn_id">HSN ID</option>
-                      <option value="gene_name">Gene Name</option>
-                      <option value="total_sites">Total Sites</option>
-                      <option value="protein_length">Length</option>
-                    </select>
-                  </div>
-                  {/* Items per page */}
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500">Show:</span>
-                    <select
-                      value={itemsPerPage}
-                      onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Right side: Analyze button */}
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Analyze
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
-                </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p className="max-w-xs">{tooltipText}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-            </CardContent>
-          </Card>{" "}
-          {/* Results Header */}
-          <div className="flex justify-between items-center">
-            <p className="text-gray-600">
-              {isLoading ? (
-                "Loading..."
-              ) : (
-                <>
-                  Showing{" "}
-                  <span className="font-semibold">
-                    {totalResults === 0
-                      ? 0
-                      : (currentPage - 1) * itemsPerPage + 1}
-                    -{Math.min(currentPage * itemsPerPage, totalResults)}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold">
-                    {totalResults.toLocaleString()}
-                  </span>{" "}
-                  results
-                </>
-              )}
-            </p>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-green-50 text-green-800">
-                {badgeText}
-              </Badge>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                      <InfoIcon className="h-4 w-4 text-gray-500" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p className="max-w-xs">{tooltipText}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
-          </div>
-          {/* Results Table */}
-          <Card>
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="p-8 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading proteins...</p>
-                </div>
-              ) : error ? (
-                <div className="p-8 text-center">
-                  <p className="text-red-600">
-                    Error loading data. Please try again.
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    {error.message || "An unknown error occurred"}
-                  </p>
-                  <div className="bg-gray-50 p-4 rounded text-left overflow-auto max-h-48 mt-4">
-                    <h4 className="font-mono text-xs mb-2">
-                      Debug Information:
-                    </h4>
-                    <pre className="text-xs font-mono whitespace-pre-wrap">
-                      {JSON.stringify(
-                        { error, query: debouncedSearchQuery, filters },
-                        null,
-                        2
-                      )}
-                    </pre>
+
+            {/* Results Table */}
+            <Card>
+              <CardContent className="p-0">
+                {isLoading ? (
+                  <div className="p-8 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading proteins...</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    className="mt-3"
-                    onClick={() => window.location.reload()}
-                  >
-                    Reload page
-                  </Button>
-                </div>
-              ) : results.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="text-gray-500 mb-4">
-                    No proteins found. Try adjusting your search or filters.
-                  </p>
-                  <div className="flex justify-center gap-2">
-                    {" "}
+                ) : error ? (
+                  <div className="p-8 text-center">
+                    <p className="text-red-600">
+                      Error loading data. Please try again.
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      {error.message || "An unknown error occurred"}
+                    </p>
+                    <div className="bg-gray-50 p-4 rounded text-left overflow-auto max-h-48 mt-4">
+                      <h4 className="font-mono text-xs mb-2">
+                        Debug Information:
+                      </h4>
+                      <pre className="text-xs font-mono whitespace-pre-wrap">
+                        {JSON.stringify(
+                          { error, query: debouncedSearchQuery, filters },
+                          null,
+                          2
+                        )}
+                      </pre>
+                    </div>
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        setSearchQuery("");
-                        clearAllFilters();
-                        setSortBy("hsn_id");
-                      }}
-                    >
-                      Clear all filters
-                    </Button>
-                    <Button
-                      variant="outline"
+                      className="mt-3"
                       onClick={() => window.location.reload()}
                     >
-                      Refresh page
+                      Reload page
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <div className="overflow-x-auto w-full">
-                  <Table className="w-full table-auto">
-                    <TableHeader>
-                      <TableRow className="bg-gray-50">
-                        <TableHead className="font-semibold text-gray-700 w-[80px]">
-                          HSN ID
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[100px]">
-                          Gene Name
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[120px]">
-                          UniProt ID
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-auto">
-                          Protein Name
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[80px]">
-                          Length
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[120px]">
-                          AlphaFold ID
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[80px]">
-                          Sites
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[140px]">
-                          Nitrosylation Position
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[80px]">
-                          Cancer
-                        </TableHead>
-                        <TableHead className="font-semibold text-gray-700 w-[140px]">
-                          Cancer Types
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {results.map((result, index) => (
-                        <TableRow
-                          key={result.id}
-                          className={`${
-                            index % 2 === 0 ? "bg-white" : "bg-gray-200"
-                          } hover:bg-gray-100 transition-colors cursor-pointer`}
-                          onClick={() => handleRowClick(result.id)}
-                        >
-                          <TableCell className="font-medium text-blue-600">
-                            {result.hsn_id}
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {result.gene_name}
-                          </TableCell>
-                          <TableCell className="">
-                            <a
-                              href={`https://www.uniprot.org/uniprotkb/${result.uniprot_id}/entry`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline font-mono text-sm"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {result.uniprot_id}
-                            </a>
-                          </TableCell>
-                          <TableCell className="max-w-[300px]">
-                            <div
-                              className="truncate"
-                              title={result.protein_name || ""}
-                            >
-                              {result.protein_name}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            {result.protein_length}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            <a
-                              href={`https://alphafold.ebi.ac.uk/search/text/${result.alphafold_id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {result.alphafold_id}
-                            </a>
-                          </TableCell>
-                          <TableCell className="text-center font-semibold">
-                            {result.total_sites ?? "-"}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {result.positions_of_nitrosylation ?? "-"}
-                          </TableCell>
-                          <TableCell className="">
-                            <Badge
-                              variant={getCancerBadgeVariant(
-                                result.cancer_causing ?? false
-                              )}
-                            >
-                              {result.cancer_causing ? "Y" : "N"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {result.cancer_types &&
-                            result.cancer_types.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {result.cancer_types.map((type, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className="text-xs"
-                                  >
-                                    {type}
-                                  </Badge>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </TableCell>
+                ) : results.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-gray-500 mb-4">
+                      No proteins found. Try adjusting your search or filters.
+                    </p>
+                    <div className="flex justify-center gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSearchQuery("");
+                          clearAllFilters();
+                          setSortBy("hsn_id");
+                        }}
+                      >
+                        Clear all filters
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.location.reload()}
+                      >
+                        Refresh page
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full overflow-x-auto">
+                    <Table className="w-full">
+                      <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="font-semibold text-gray-700 min-w-[80px]">
+                            HSN ID
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-700 min-w-[100px]">
+                            Gene Name
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-700 min-w-[120px]">
+                            UniProt ID
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-700 min-w-[200px]">
+                            Protein Name
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-700 min-w-[80px]">
+                            Length
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-700 min-w-[120px]">
+                            AlphaFold ID
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-700 min-w-[80px]">
+                            Sites
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-700 min-w-[140px]">
+                            Nitrosylation Position
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-700 min-w-[80px]">
+                            Cancer
+                          </TableHead>
+                          <TableHead className="font-semibold text-gray-700 min-w-[140px]">
+                            Cancer Types
+                          </TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>{" "}
-          {/* Pagination */}
-          {!isLoading && totalPages > 1 && (
-            <div className="flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage > 1) setCurrentPage(currentPage - 1);
-                      }}
-                      className={
-                        currentPage === 1
-                          ? "pointer-events-none opacity-50"
-                          : ""
-                      }
-                    />
-                  </PaginationItem>
+                      </TableHeader>
+                      <TableBody>
+                        {results.map((result, index) => (
+                          <TableRow
+                            key={result.id}
+                            className={`${
+                              index % 2 === 0 ? "bg-white" : "bg-gray-200"
+                            } hover:bg-gray-100 transition-colors cursor-pointer`}
+                            onClick={() => handleRowClick(result.id)}
+                          >
+                            <TableCell className="font-medium text-blue-600">
+                              {result.hsn_id}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {result.gene_name}
+                            </TableCell>
+                            <TableCell className="">
+                              <a
+                                href={`https://www.uniprot.org/uniprotkb/${result.uniprot_id}/entry`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline font-mono text-sm"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {result.uniprot_id}
+                              </a>
+                            </TableCell>
+                            <TableCell className="max-w-[300px]">
+                              <div
+                                className="truncate"
+                                title={result.protein_name || ""}
+                              >
+                                {result.protein_name}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {result.protein_length}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              <a
+                                href={`https://alphafold.ebi.ac.uk/search/text/${result.alphafold_id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {result.alphafold_id}
+                              </a>
+                            </TableCell>
+                            <TableCell className="text-center font-semibold">
+                              {result.total_sites ?? "-"}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {result.positions_of_nitrosylation ?? "-"}
+                            </TableCell>
+                            <TableCell className="">
+                              <Badge
+                                variant={getCancerBadgeVariant(
+                                  result.cancer_causing ?? false
+                                )}
+                              >
+                                {result.cancer_causing ? "Y" : "N"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {result.cancer_types &&
+                              result.cancer_types.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {result.cancer_types.map((type, index) => (
+                                    <Badge
+                                      key={index}
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {type}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const page = i + 1;
-                    return (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setCurrentPage(page);
-                          }}
-                          isActive={currentPage === page}
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
+            {/* Pagination */}
+            {!isLoading && totalPages > 1 && (
+              <div className="flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage > 1) setCurrentPage(currentPage - 1);
+                        }}
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
 
-                  <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (currentPage < totalPages)
-                          setCurrentPage(currentPage + 1);
-                      }}
-                      className={
-                        currentPage === totalPages
-                          ? "pointer-events-none opacity-50"
-                          : ""
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const page = i + 1;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setCurrentPage(page);
+                            }}
+                            isActive={currentPage === page}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (currentPage < totalPages)
+                            setCurrentPage(currentPage + 1);
+                        }}
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>
