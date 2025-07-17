@@ -2,9 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
-  Download,
-  BookOpen,
-  BarChart3,
   ChevronDown,
   X,
   ExternalLink,
@@ -284,14 +281,16 @@ const ProteinTableInterface = ({
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Filter Sidebar for Desktop / Sheet for Mobile */}
-          <ProteinFilters
-            filters={filters}
-            filterOptions={filterOptions}
-            isLoadingCancerTypes={isLoadingCancerTypes}
-            onToggleFilter={toggleFilter}
-            onClearAllFilters={clearAllFilters}
-          />
+          {/* Filter Sidebar for Desktop Only - Hidden on Mobile */}
+          <div className="hidden lg:block">
+            <ProteinFilters
+              filters={filters}
+              filterOptions={filterOptions}
+              isLoadingCancerTypes={isLoadingCancerTypes}
+              onToggleFilter={toggleFilter}
+              onClearAllFilters={clearAllFilters}
+            />
+          </div>
 
           {/* Main Content Area */}
           <div className="flex-1 min-w-0 space-y-6">
@@ -299,8 +298,8 @@ const ProteinTableInterface = ({
             <Card>
               <CardContent className="p-6">
                 {/* Search Section - Full Width */}
-                <div className="mb-4">
-                  <div className="relative">
+                <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                  <div className="flex-1 min-w-0 relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input
                       type="text"
@@ -311,32 +310,30 @@ const ProteinTableInterface = ({
                       className="pl-10 w-full"
                     />
                   </div>
+                  <Button
+                    className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
+                    onClick={handleSearch}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Searching..." : "Search"}
+                  </Button>
+                </div>
+
+                {/* Mobile Filter Button - Below Search */}
+                <div className="lg:hidden mb-4">
+                  <ProteinFilters
+                    filters={filters}
+                    filterOptions={filterOptions}
+                    isLoadingCancerTypes={isLoadingCancerTypes}
+                    onToggleFilter={toggleFilter}
+                    onClearAllFilters={clearAllFilters}
+                  />
                 </div>
 
                 {/* Control Options */}
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  {/* Left side: Mobile Filter, Sort by, Show, Search Button */}
+                  {/* Left side: Sort by, Show */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 min-w-0">
-                    {/* Mobile Filter Button */}
-                    <div className="lg:hidden flex-shrink-0">
-                      <ProteinFilters
-                        filters={filters}
-                        filterOptions={filterOptions}
-                        isLoadingCancerTypes={isLoadingCancerTypes}
-                        onToggleFilter={toggleFilter}
-                        onClearAllFilters={clearAllFilters}
-                      />
-                    </div>
-
-                    {/* Search Button */}
-                    <Button
-                      className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
-                      onClick={handleSearch}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Searching..." : "Search"}
-                    </Button>
-
                     {/* Sort by dropdown */}
                     <div className="flex items-center space-x-2 flex-shrink-0">
                       <label className="text-sm text-gray-600 whitespace-nowrap">
@@ -373,18 +370,6 @@ const ProteinTableInterface = ({
                         <option value={100}>100</option>
                       </select>
                     </div>
-                  </div>
-
-                  {/* Right side: Action buttons */}
-                  <div className="flex space-x-2 flex-shrink-0">
-                    <Button variant="outline" size="sm">
-                      <BarChart3 className="h-4 w-4 mr-2" />
-                      Analyze
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
-                    </Button>
                   </div>
                 </div>
               </CardContent>

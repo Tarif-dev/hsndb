@@ -41,26 +41,25 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
   };
 
   const FilterContent = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-lg">Filters</span>
         {getActiveFiltersCount() > 0 && (
           <Button
             variant="ghost"
             size="sm"
             onClick={onClearAllFilters}
-            className="text-red-600 hover:text-red-700"
+            className="text-red-600 hover:text-red-700 h-7 text-xs ml-auto"
           >
-            <X className="h-4 w-4 mr-1" />
+            <X className="h-3 w-3 mr-1" />
             Clear All
           </Button>
         )}
       </div>
 
       {Object.entries(filterOptions).map(([category, options]) => (
-        <div key={category} className="space-y-3">
+        <div key={category} className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-gray-700 capitalize">
+            <label className="text-xs font-medium text-gray-700 uppercase tracking-wide">
               {category === "cancerSites"
                 ? "Cancer Causing"
                 : category === "totalSites"
@@ -70,27 +69,27 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
                 : category}
             </label>
             {filters[category as keyof FiltersType].length > 0 && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="text-xs h-4 px-1">
                 {filters[category as keyof FiltersType].length}
               </Badge>
             )}
           </div>
 
-          <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3 bg-gray-50">
+          <div className="space-y-1 max-h-32 overflow-y-auto border rounded p-2 bg-gray-50">
             {category === "cancerTypes" && isLoadingCancerTypes ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <span className="ml-2 text-sm text-gray-500">Loading...</span>
+              <div className="flex items-center justify-center py-2">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-xs text-gray-500">Loading...</span>
               </div>
             ) : (
               options.map((option) => (
                 <label
                   key={option}
-                  className="flex items-center space-x-3 cursor-pointer hover:bg-white p-2 rounded transition-colors"
+                  className="flex items-center space-x-2 cursor-pointer hover:bg-white px-1 py-1 rounded text-xs transition-colors"
                 >
                   <input
                     type="checkbox"
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     checked={filters[category as keyof FiltersType].includes(
                       option
                     )}
@@ -98,7 +97,7 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
                       onToggleFilter(category as keyof FiltersType, option)
                     }
                   />
-                  <span className="text-sm text-gray-700 flex-1">{option}</span>
+                  <span className="text-xs text-gray-700 flex-1">{option}</span>
                 </label>
               ))
             )}
@@ -111,20 +110,20 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
   return (
     <>
       {/* Desktop Filter Sidebar */}
-      <div className="hidden lg:block lg:w-64 lg:flex-shrink-0">
+      <div className="hidden lg:block lg:w-56 lg:flex-shrink-0">
         <Card className="sticky top-4">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center">
-              <Filter className="h-5 w-5 mr-2" />
+          <CardHeader className="pb-3 pt-4">
+            <CardTitle className="text-base flex items-center">
+              <Filter className="h-4 w-4 mr-2" />
               Filters
               {getActiveFiltersCount() > 0 && (
-                <Badge variant="secondary" className="ml-2">
+                <Badge variant="secondary" className="ml-2 text-xs h-4 px-1">
                   {getActiveFiltersCount()}
                 </Badge>
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <FilterContent />
           </CardContent>
         </Card>
