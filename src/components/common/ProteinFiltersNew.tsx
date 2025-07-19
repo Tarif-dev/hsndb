@@ -48,15 +48,8 @@ interface FiltersType {
   scopFamilies: string[];
   scopProteinTypes: string[];
   // CATH filters
-  cathClasses: string[];
-  cathArchitectures: string[];
   cathTopologies: string[];
   cathSuperfamilies: string[];
-  cathSources: string[];
-  cathAssignments: string[];
-  cathOrganisms: string[];
-  cathPackings: string[];
-  cathLengthRanges: string[];
   cathSseRanges: string[];
   cathPercentRanges: string[];
   cathPldtRanges: string[];
@@ -93,14 +86,8 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
     scopSuperfamilies: "",
     scopFamilies: "",
     scopProteinTypes: "",
-    cathClasses: "",
-    cathArchitectures: "",
     cathTopologies: "",
     cathSuperfamilies: "",
-    cathSources: "",
-    cathAssignments: "",
-    cathOrganisms: "",
-    cathPackings: "",
   });
 
   // Filter presets for common use cases
@@ -119,13 +106,6 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
       filters: {
         cathPldtRanges: ["Very High (90-100)", "High (70-89)"],
         cathLur: ["Yes"],
-      },
-    },
-    {
-      name: "Small Proteins (<200 AA)",
-      icon: Star,
-      filters: {
-        cathLengthRanges: ["1-100", "101-200"],
       },
     },
   ];
@@ -171,7 +151,8 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
         return (
           filters.cancerSites.length +
           filters.totalSites.length +
-          filters.cancerTypes.length
+          filters.cancerTypes.length +
+          filters.cathPercentRanges.length
         );
       case "scop":
         return (
@@ -182,21 +163,10 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
           filters.scopProteinTypes.length
         );
       case "cath":
-        return (
-          filters.cathClasses.length +
-          filters.cathArchitectures.length +
-          filters.cathTopologies.length +
-          filters.cathSuperfamilies.length +
-          filters.cathSources.length +
-          filters.cathAssignments.length +
-          filters.cathOrganisms.length +
-          filters.cathPackings.length
-        );
+        return filters.cathTopologies.length + filters.cathSuperfamilies.length;
       case "cathNumerical":
         return (
-          filters.cathLengthRanges.length +
           filters.cathSseRanges.length +
-          filters.cathPercentRanges.length +
           filters.cathPldtRanges.length +
           filters.cathLur.length
         );
@@ -374,13 +344,6 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
               ))}
             </SelectContent>
           </Select>
-
-          {/* Active Filter Count */}
-          {getActiveFiltersCount() > 0 && (
-            <Badge variant="outline" className="text-xs h-5 px-2">
-              {getActiveFiltersCount()} active
-            </Badge>
-          )}
         </div>
 
         {/* Clear All Button */}
@@ -438,6 +401,13 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
             "Cancer Types",
             filterOptions.cancerTypes,
             true
+          )}
+          {renderFilterSection(
+            "cathPercentRanges",
+            "Disorder %",
+            filterOptions.cathPercentRanges,
+            false,
+            8
           )}
         </CollapsibleContent>
       </Collapsible>
@@ -529,20 +499,6 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-3 p-2">
           {renderFilterSection(
-            "cathClasses",
-            "CATH Classes",
-            filterOptions.cathClasses,
-            true,
-            6
-          )}
-          {renderFilterSection(
-            "cathArchitectures",
-            "CATH Architectures",
-            filterOptions.cathArchitectures,
-            true,
-            6
-          )}
-          {renderFilterSection(
             "cathTopologies",
             "CATH Topologies",
             filterOptions.cathTopologies,
@@ -555,32 +511,6 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
             filterOptions.cathSuperfamilies,
             true,
             6
-          )}
-          {renderFilterSection(
-            "cathSources",
-            "Sources",
-            filterOptions.cathSources,
-            true,
-            6
-          )}
-          {renderFilterSection(
-            "cathAssignments",
-            "Assignments",
-            filterOptions.cathAssignments,
-            true,
-            6
-          )}
-          {renderFilterSection(
-            "cathOrganisms",
-            "Organisms",
-            filterOptions.cathOrganisms,
-            true,
-            6
-          )}
-          {renderFilterSection(
-            "cathPackings",
-            "Packings",
-            filterOptions.cathPackings
           )}
         </CollapsibleContent>
       </Collapsible>
@@ -610,23 +540,9 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-3 p-2">
           {renderFilterSection(
-            "cathLengthRanges",
-            "Length Ranges",
-            filterOptions.cathLengthRanges,
-            false,
-            8
-          )}
-          {renderFilterSection(
             "cathSseRanges",
             "SSE Ranges",
             filterOptions.cathSseRanges,
-            false,
-            8
-          )}
-          {renderFilterSection(
-            "cathPercentRanges",
-            "Disorder %",
-            filterOptions.cathPercentRanges,
             false,
             8
           )}
@@ -657,11 +573,6 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
             <CardTitle className="text-base flex items-center">
               <Filter className="h-4 w-4 mr-2" />
               Filters
-              {getActiveFiltersCount() > 0 && (
-                <Badge variant="secondary" className="ml-2 text-xs h-4 px-1">
-                  {getActiveFiltersCount()}
-                </Badge>
-              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -677,11 +588,6 @@ const ProteinFilters: React.FC<ProteinFiltersProps> = ({
             <Button variant="outline" className="w-full sm:w-auto">
               <Filter className="h-4 w-4 mr-2" />
               Filters
-              {getActiveFiltersCount() > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {getActiveFiltersCount()}
-                </Badge>
-              )}
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-80 overflow-y-auto">

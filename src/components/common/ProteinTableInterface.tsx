@@ -103,15 +103,8 @@ const ProteinTableInterface = ({
     scopFamilies: [] as string[],
     scopProteinTypes: [] as string[],
     // CATH filters
-    cathClasses: [] as string[],
-    cathArchitectures: [] as string[],
     cathTopologies: [] as string[],
     cathSuperfamilies: [] as string[],
-    cathSources: [] as string[],
-    cathAssignments: [] as string[],
-    cathOrganisms: [] as string[],
-    cathPackings: [] as string[],
-    cathLengthRanges: [] as string[],
     cathSseRanges: [] as string[],
     cathPercentRanges: [] as string[],
     cathPldtRanges: [] as string[],
@@ -177,31 +170,11 @@ const ProteinTableInterface = ({
           ? filters.scopProteinTypes
           : undefined,
       // CATH filters
-      cathClasses:
-        filters.cathClasses.length > 0 ? filters.cathClasses : undefined,
-      cathArchitectures:
-        filters.cathArchitectures.length > 0
-          ? filters.cathArchitectures
-          : undefined,
       cathTopologies:
         filters.cathTopologies.length > 0 ? filters.cathTopologies : undefined,
       cathSuperfamilies:
         filters.cathSuperfamilies.length > 0
           ? filters.cathSuperfamilies
-          : undefined,
-      cathSources:
-        filters.cathSources.length > 0 ? filters.cathSources : undefined,
-      cathAssignments:
-        filters.cathAssignments.length > 0
-          ? filters.cathAssignments
-          : undefined,
-      cathOrganisms:
-        filters.cathOrganisms.length > 0 ? filters.cathOrganisms : undefined,
-      cathPackings:
-        filters.cathPackings.length > 0 ? filters.cathPackings : undefined,
-      cathLengthRanges:
-        filters.cathLengthRanges.length > 0
-          ? filters.cathLengthRanges
           : undefined,
       cathSseRanges:
         filters.cathSseRanges.length > 0 ? filters.cathSseRanges : undefined,
@@ -268,16 +241,9 @@ const ProteinTableInterface = ({
     scopFamilies: scopOptions?.familyNames || [],
     scopProteinTypes: scopOptions?.proteinTypes || [],
     // CATH options
-    cathClasses: cathOptions?.cathClasses || [],
-    cathArchitectures: cathOptions?.cathArchitectures || [],
     cathTopologies: cathOptions?.cathTopologies || [],
     cathSuperfamilies: cathOptions?.cathSuperfamilies || [],
-    cathSources: cathOptions?.sources || [],
-    cathAssignments: cathOptions?.assignments || [],
-    cathOrganisms: cathOptions?.organisms || [],
-    cathPackings: cathOptions?.packings || [],
     // CATH numerical ranges
-    cathLengthRanges: cathNumericalOptions?.lengthRanges || [],
     cathSseRanges: cathNumericalOptions?.sseRanges || [],
     cathPercentRanges: cathNumericalOptions?.percentRanges || [],
     cathPldtRanges: cathNumericalOptions?.pldtRanges || [],
@@ -312,21 +278,59 @@ const ProteinTableInterface = ({
       scopFamilies: [],
       scopProteinTypes: [],
       // CATH filters
-      cathClasses: [],
-      cathArchitectures: [],
       cathTopologies: [],
       cathSuperfamilies: [],
-      cathSources: [],
-      cathAssignments: [],
-      cathOrganisms: [],
-      cathPackings: [],
-      cathLengthRanges: [],
       cathSseRanges: [],
       cathPercentRanges: [],
       cathPldtRanges: [],
       cathLur: [],
     });
     setCurrentPage(1);
+  };
+
+  // Helper function to get all active filters as badges
+  const getActiveFilterBadges = () => {
+    const badges: { category: string; label: string; value: string }[] = [];
+
+    // Category labels for better display
+    const categoryLabels: { [key: string]: string } = {
+      cancerSites: "Cancer Causing",
+      totalSites: "Total Sites",
+      cancerTypes: "Cancer Types",
+      scopClasses: "SCOP Classes",
+      scopFolds: "SCOP Folds",
+      scopSuperfamilies: "SCOP Superfamilies",
+      scopFamilies: "SCOP Families",
+      scopProteinTypes: "SCOP Protein Types",
+      cathTopologies: "CATH Topologies",
+      cathSuperfamilies: "CATH Superfamilies",
+      cathSseRanges: "SSE Ranges",
+      cathPercentRanges: "Disorder %",
+      cathPldtRanges: "pLDDT Confidence",
+      cathLur: "Low Uncertainty Region",
+    };
+
+    Object.entries(filters).forEach(([category, values]) => {
+      if (values.length > 0) {
+        values.forEach((value) => {
+          badges.push({
+            category,
+            label: categoryLabels[category] || category,
+            value,
+          });
+        });
+      }
+    });
+
+    return badges;
+  };
+
+  // Helper function to get total count of active filters
+  const getTotalActiveFilters = () => {
+    return Object.values(filters).reduce(
+      (sum, filterArray) => sum + filterArray.length,
+      0
+    );
   };
   const getCancerBadgeVariant = (cancerCausing: boolean) => {
     return cancerCausing ? "destructive" : "secondary";
@@ -508,6 +512,65 @@ const ProteinTableInterface = ({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Active Filter Badges */}
+            {getTotalActiveFilters() > 0 && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2 mr-2">
+                      <span className="text-sm font-medium text-blue-800">
+                        Active Filters
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-100 text-blue-700 border-blue-300 text-xs px-2 py-0.5"
+                      >
+                        {getTotalActiveFilters()}
+                      </Badge>
+                    </div>
+                    {getActiveFilterBadges().map((filter, index) => (
+                      <Badge
+                        key={`${filter.category}-${filter.value}-${index}`}
+                        variant="secondary"
+                        className="flex items-center gap-1 bg-white text-blue-800 border border-blue-300 hover:bg-blue-100 transition-colors max-w-xs"
+                      >
+                        <span className="font-medium text-xs">
+                          {filter.label}:
+                        </span>
+                        <span className="text-xs truncate">
+                          {filter.value.length > 20
+                            ? `${filter.value.substring(0, 20)}...`
+                            : filter.value}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 ml-1 hover:bg-blue-200 text-blue-600"
+                          onClick={() =>
+                            toggleFilter(
+                              filter.category as keyof typeof filters,
+                              filter.value
+                            )
+                          }
+                          title={`Remove ${filter.label}: ${filter.value}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearAllFilters}
+                      className="text-xs h-7 px-3 ml-2 text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400 transition-colors"
+                    >
+                      Clear All Filters
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Results Header */}
             <div className="flex justify-between items-center">
