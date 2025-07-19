@@ -612,39 +612,39 @@ const ProteinTableInterface = ({
                   </div>
                 ) : (
                   <div className="w-full overflow-x-auto">
-                    <Table className="w-full">
+                    <Table className="w-full border-separate border-spacing-0">
                       <TableHeader>
                         <TableRow className="bg-gray-50">
-                          <TableHead className="font-semibold text-gray-700 min-w-[80px]">
+                          <TableHead className="font-semibold text-gray-700 min-w-[80px] px-2">
                             HSN ID
                           </TableHead>
-                          <TableHead className="font-semibold text-gray-700 min-w-[100px]">
+                          <TableHead className="font-semibold text-gray-700 min-w-[100px] px-2">
                             Gene Name
                           </TableHead>
-                          <TableHead className="font-semibold text-gray-700 min-w-[120px]">
+                          <TableHead className="font-semibold text-gray-700 min-w-[120px] px-2">
                             UniProt ID
                           </TableHead>
-                          <TableHead className="font-semibold text-gray-700 min-w-[200px]">
+                          <TableHead className="font-semibold text-gray-700 min-w-[200px] px-2">
                             Protein Name
                           </TableHead>
-                          <TableHead className="font-semibold text-gray-700 min-w-[80px]">
+                          <TableHead className="font-semibold text-gray-700 min-w-[80px] px-2">
                             Length
                           </TableHead>
-                          <TableHead className="font-semibold text-gray-700 min-w-[120px]">
+                          <TableHead className="font-semibold text-gray-700 min-w-[120px] px-2">
                             AlphaFold ID
                           </TableHead>
-                          <TableHead className="font-semibold text-gray-700 min-w-[80px]">
+                          <TableHead className="font-semibold text-gray-700 min-w-[60px] px-2">
                             Sites
                           </TableHead>
-                          <TableHead className="font-semibold text-gray-700 min-w-[140px]">
+                          {/* <TableHead className="font-semibold text-gray-700 min-w-[140px] px-2">
                             Nitrosylation Position
-                          </TableHead>
-                          <TableHead className="font-semibold text-gray-700 min-w-[80px]">
+                          </TableHead> */}
+                          <TableHead className="font-semibold text-gray-700 min-w-[60px] px-2">
                             Cancer
                           </TableHead>
-                          <TableHead className="font-semibold text-gray-700 min-w-[140px]">
+                          {/* <TableHead className="font-semibold text-gray-700 min-w-[140px] px-2">
                             Cancer Types
-                          </TableHead>
+                          </TableHead> */}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -656,13 +656,13 @@ const ProteinTableInterface = ({
                             } hover:bg-gray-100 transition-colors cursor-pointer`}
                             onClick={() => handleRowClick(result.id)}
                           >
-                            <TableCell className="font-medium text-blue-600">
+                            <TableCell className="font-medium text-blue-600 px-2">
                               {result.hsn_id}
                             </TableCell>
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium px-2">
                               {result.gene_name}
                             </TableCell>
-                            <TableCell className="">
+                            <TableCell className="px-2">
                               <a
                                 href={`https://www.uniprot.org/uniprotkb/${result.uniprot_id}/entry`}
                                 target="_blank"
@@ -673,7 +673,7 @@ const ProteinTableInterface = ({
                                 {result.uniprot_id}
                               </a>
                             </TableCell>
-                            <TableCell className="max-w-[300px]">
+                            <TableCell className="max-w-[300px] px-2">
                               <div
                                 className="truncate"
                                 title={result.protein_name || ""}
@@ -681,10 +681,10 @@ const ProteinTableInterface = ({
                                 {result.protein_name}
                               </div>
                             </TableCell>
-                            <TableCell className="text-center">
+                            <TableCell className="text-center px-2">
                               {result.protein_length}
                             </TableCell>
-                            <TableCell className="font-mono text-sm">
+                            <TableCell className="font-mono text-sm px-2">
                               <a
                                 href={`https://alphafold.ebi.ac.uk/search/text/${result.alphafold_id}`}
                                 target="_blank"
@@ -695,13 +695,13 @@ const ProteinTableInterface = ({
                                 {result.alphafold_id}
                               </a>
                             </TableCell>
-                            <TableCell className="text-center font-semibold">
+                            <TableCell className="text-center font-semibold px-2">
                               {result.total_sites ?? "-"}
                             </TableCell>
-                            <TableCell className="font-mono text-sm">
+                            {/* <TableCell className="font-mono text-sm px-2">
                               {result.positions_of_nitrosylation ?? "-"}
-                            </TableCell>
-                            <TableCell className="">
+                            </TableCell> */}
+                            <TableCell className="px-2">
                               <Badge
                                 variant={getCancerBadgeVariant(
                                   result.cancer_causing ?? false
@@ -710,7 +710,7 @@ const ProteinTableInterface = ({
                                 {result.cancer_causing ? "Y" : "N"}
                               </Badge>
                             </TableCell>
-                            <TableCell>
+                            {/* <TableCell className="px-2">
                               {result.cancer_types &&
                               result.cancer_types.length > 0 ? (
                                 <div className="flex flex-wrap gap-1">
@@ -727,7 +727,7 @@ const ProteinTableInterface = ({
                               ) : (
                                 <span className="text-gray-400">-</span>
                               )}
-                            </TableCell>
+                            </TableCell> */}
                           </TableRow>
                         ))}
                       </TableBody>
