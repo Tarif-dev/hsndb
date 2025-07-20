@@ -115,7 +115,7 @@ export const useProteins = (params: UseProteinsParams = {}) => {
       query = query.order(orderColumn, { ascending });
 
       // Check if we need any filtering that requires fetching all data first
-      const needsStructuralFiltering = 
+      const needsStructuralFiltering =
         (filters.cathPercentRanges && filters.cathPercentRanges.length > 0) ||
         (filters.scopClasses && filters.scopClasses.length > 0) ||
         (filters.scopFolds && filters.scopFolds.length > 0) ||
@@ -348,13 +348,19 @@ export const useProteins = (params: UseProteinsParams = {}) => {
             scopQuery = scopQuery.in("fold_name", filters.scopFolds);
           }
           if (filters.scopSuperfamilies?.length > 0) {
-            scopQuery = scopQuery.in("superfamily_name", filters.scopSuperfamilies);
+            scopQuery = scopQuery.in(
+              "superfamily_name",
+              filters.scopSuperfamilies
+            );
           }
           if (filters.scopFamilies?.length > 0) {
             scopQuery = scopQuery.in("family_name", filters.scopFamilies);
           }
           if (filters.scopProteinTypes?.length > 0) {
-            scopQuery = scopQuery.in("protein_type_name", filters.scopProteinTypes);
+            scopQuery = scopQuery.in(
+              "protein_type_name",
+              filters.scopProteinTypes
+            );
           }
 
           const { data: scopData, error: scopError } = await scopQuery;
@@ -362,16 +368,22 @@ export const useProteins = (params: UseProteinsParams = {}) => {
           if (scopError) {
             console.error("Error fetching SCOP data:", scopError);
           } else if (scopData?.length > 0) {
-            const validScopUniprotIds = new Set(scopData.map(s => s.uniprot_id));
+            const validScopUniprotIds = new Set(
+              scopData.map((s) => s.uniprot_id)
+            );
             const beforeScopFilter = results.length;
-            results = results.filter((protein) => 
-              protein.uniprot_id && validScopUniprotIds.has(protein.uniprot_id)
+            results = results.filter(
+              (protein) =>
+                protein.uniprot_id &&
+                validScopUniprotIds.has(protein.uniprot_id)
             );
             console.log(
               `🔍 [useProteins] SCOP filtering: ${beforeScopFilter} -> ${results.length} proteins`
             );
           } else {
-            console.log("❌ [useProteins] No SCOP data found, filtering out all results");
+            console.log(
+              "❌ [useProteins] No SCOP data found, filtering out all results"
+            );
             results = [];
           }
         } else {
@@ -379,7 +391,7 @@ export const useProteins = (params: UseProteinsParams = {}) => {
         }
       }
 
-      // Apply CATH filtering if specified  
+      // Apply CATH filtering if specified
       if (
         results.length > 0 &&
         (filters.cathClasses?.length > 0 ||
@@ -416,117 +428,142 @@ export const useProteins = (params: UseProteinsParams = {}) => {
             let filteredCathData = cathData;
 
             if (filters.cathClasses?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => 
+              filteredCathData = filteredCathData.filter((cath) =>
                 filters.cathClasses!.includes(cath.CATH_Class)
               );
             }
             if (filters.cathArchitectures?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => 
+              filteredCathData = filteredCathData.filter((cath) =>
                 filters.cathArchitectures!.includes(cath.CATH_Architecture)
               );
             }
             if (filters.cathTopologies?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => 
+              filteredCathData = filteredCathData.filter((cath) =>
                 filters.cathTopologies!.includes(cath.CATH_Topology)
               );
             }
             if (filters.cathSuperfamilies?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => 
+              filteredCathData = filteredCathData.filter((cath) =>
                 filters.cathSuperfamilies!.includes(cath.CATH_Superfamily)
               );
             }
             if (filters.cathSources?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => 
+              filteredCathData = filteredCathData.filter((cath) =>
                 filters.cathSources!.includes(cath.source)
               );
             }
             if (filters.cathAssignments?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => 
+              filteredCathData = filteredCathData.filter((cath) =>
                 filters.cathAssignments!.includes(cath.assignment)
               );
             }
             if (filters.cathOrganisms?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => 
+              filteredCathData = filteredCathData.filter((cath) =>
                 filters.cathOrganisms!.includes(cath.organism)
               );
             }
             if (filters.cathPackings?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => 
+              filteredCathData = filteredCathData.filter((cath) =>
                 filters.cathPackings!.includes(cath.packing)
               );
             }
 
             // Apply range filters
             if (filters.cathLengthRanges?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => {
+              filteredCathData = filteredCathData.filter((cath) => {
                 if (cath.length === null) return false;
-                return filters.cathLengthRanges!.some(range => {
+                return filters.cathLengthRanges!.some((range) => {
                   switch (range) {
-                    case "1-50": return cath.length >= 1 && cath.length <= 50;
-                    case "51-100": return cath.length >= 51 && cath.length <= 100;
-                    case "101-200": return cath.length >= 101 && cath.length <= 200;
-                    case "201-300": return cath.length >= 201 && cath.length <= 300;
-                    case "301+": return cath.length >= 301;
-                    default: return false;
+                    case "1-50":
+                      return cath.length >= 1 && cath.length <= 50;
+                    case "51-100":
+                      return cath.length >= 51 && cath.length <= 100;
+                    case "101-200":
+                      return cath.length >= 101 && cath.length <= 200;
+                    case "201-300":
+                      return cath.length >= 201 && cath.length <= 300;
+                    case "301+":
+                      return cath.length >= 301;
+                    default:
+                      return false;
                   }
                 });
               });
             }
 
             if (filters.cathSseRanges?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => {
+              filteredCathData = filteredCathData.filter((cath) => {
                 if (cath.SSEs === null) return false;
-                return filters.cathSseRanges!.some(range => {
+                return filters.cathSseRanges!.some((range) => {
                   switch (range) {
-                    case "1-5": return cath.SSEs >= 1 && cath.SSEs <= 5;
-                    case "6-10": return cath.SSEs >= 6 && cath.SSEs <= 10;
-                    case "11-15": return cath.SSEs >= 11 && cath.SSEs <= 15;
-                    case "16+": return cath.SSEs >= 16;
-                    default: return false;
+                    case "1-5":
+                      return cath.SSEs >= 1 && cath.SSEs <= 5;
+                    case "6-10":
+                      return cath.SSEs >= 6 && cath.SSEs <= 10;
+                    case "11-15":
+                      return cath.SSEs >= 11 && cath.SSEs <= 15;
+                    case "16+":
+                      return cath.SSEs >= 16;
+                    default:
+                      return false;
                   }
                 });
               });
             }
 
             if (filters.cathPldtRanges?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => {
+              filteredCathData = filteredCathData.filter((cath) => {
                 if (!cath.pLDDT) return false;
                 const plddt = parseFloat(cath.pLDDT);
                 if (isNaN(plddt)) return false;
-                return filters.cathPldtRanges!.some(range => {
+                return filters.cathPldtRanges!.some((range) => {
                   switch (range) {
-                    case "0-50": return plddt >= 0 && plddt <= 50;
-                    case "51-70": return plddt >= 51 && plddt <= 70;
-                    case "71-90": return plddt >= 71 && plddt <= 90;
-                    case "91-100": return plddt >= 91 && plddt <= 100;
-                    default: return false;
+                    case "0-50":
+                      return plddt >= 0 && plddt <= 50;
+                    case "51-70":
+                      return plddt >= 51 && plddt <= 70;
+                    case "71-90":
+                      return plddt >= 71 && plddt <= 90;
+                    case "91-100":
+                      return plddt >= 91 && plddt <= 100;
+                    default:
+                      return false;
                   }
                 });
               });
             }
 
             if (filters.cathLur?.length > 0) {
-              filteredCathData = filteredCathData.filter(cath => {
-                return filters.cathLur!.some(lur => {
+              filteredCathData = filteredCathData.filter((cath) => {
+                return filters.cathLur!.some((lur) => {
                   switch (lur) {
-                    case "true": return cath.LUR === true;
-                    case "false": return cath.LUR === false;
-                    default: return false;
+                    case "true":
+                      return cath.LUR === true;
+                    case "false":
+                      return cath.LUR === false;
+                    default:
+                      return false;
                   }
                 });
               });
             }
 
-            const validCathUniprotIds = new Set(filteredCathData.map(c => c.uniprot_id));
+            const validCathUniprotIds = new Set(
+              filteredCathData.map((c) => c.uniprot_id)
+            );
             const beforeCathFilter = results.length;
-            results = results.filter((protein) => 
-              protein.uniprot_id && validCathUniprotIds.has(protein.uniprot_id)
+            results = results.filter(
+              (protein) =>
+                protein.uniprot_id &&
+                validCathUniprotIds.has(protein.uniprot_id)
             );
             console.log(
               `🔍 [useProteins] CATH filtering: ${beforeCathFilter} -> ${results.length} proteins`
             );
           } else {
-            console.log("❌ [useProteins] No CATH data found, filtering out all results");
+            console.log(
+              "❌ [useProteins] No CATH data found, filtering out all results"
+            );
             results = [];
           }
         } else {
