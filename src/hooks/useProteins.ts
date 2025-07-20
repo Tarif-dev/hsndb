@@ -24,6 +24,25 @@ interface UseProteinsParams {
     totalSites?: string;
     cancerTypes?: string[];
     cathPercentRanges?: string[];
+    // SCOP filters
+    scopClasses?: string[];
+    scopFolds?: string[];
+    scopSuperfamilies?: string[];
+    scopFamilies?: string[];
+    scopProteinTypes?: string[];
+    // CATH filters
+    cathClasses?: string[];
+    cathArchitectures?: string[];
+    cathTopologies?: string[];
+    cathSuperfamilies?: string[];
+    cathSources?: string[];
+    cathAssignments?: string[];
+    cathOrganisms?: string[];
+    cathPackings?: string[];
+    cathLengthRanges?: string[];
+    cathSseRanges?: string[];
+    cathPldtRanges?: string[];
+    cathLur?: string[];
   };
   sortBy?: string;
   page?: number;
@@ -95,15 +114,35 @@ export const useProteins = (params: UseProteinsParams = {}) => {
 
       query = query.order(orderColumn, { ascending });
 
-      // Check if we need disorder filtering - if so, fetch all data first, then filter and paginate
-      const needsDisorderFiltering = filters.cathPercentRanges && filters.cathPercentRanges.length > 0;
+      // Check if we need any filtering that requires fetching all data first
+      const needsStructuralFiltering = 
+        (filters.cathPercentRanges && filters.cathPercentRanges.length > 0) ||
+        (filters.scopClasses && filters.scopClasses.length > 0) ||
+        (filters.scopFolds && filters.scopFolds.length > 0) ||
+        (filters.scopSuperfamilies && filters.scopSuperfamilies.length > 0) ||
+        (filters.scopFamilies && filters.scopFamilies.length > 0) ||
+        (filters.scopProteinTypes && filters.scopProteinTypes.length > 0) ||
+        (filters.cathClasses && filters.cathClasses.length > 0) ||
+        (filters.cathArchitectures && filters.cathArchitectures.length > 0) ||
+        (filters.cathTopologies && filters.cathTopologies.length > 0) ||
+        (filters.cathSuperfamilies && filters.cathSuperfamilies.length > 0) ||
+        (filters.cathSources && filters.cathSources.length > 0) ||
+        (filters.cathAssignments && filters.cathAssignments.length > 0) ||
+        (filters.cathOrganisms && filters.cathOrganisms.length > 0) ||
+        (filters.cathPackings && filters.cathPackings.length > 0) ||
+        (filters.cathLengthRanges && filters.cathLengthRanges.length > 0) ||
+        (filters.cathSseRanges && filters.cathSseRanges.length > 0) ||
+        (filters.cathPldtRanges && filters.cathPldtRanges.length > 0) ||
+        (filters.cathLur && filters.cathLur.length > 0);
 
       let allData: any[] = [];
       let totalCount = 0;
 
-      if (needsDisorderFiltering) {
-        // Fetch ALL data without pagination for disorder filtering
-        console.log("🔍 [useProteins] Fetching all data for disorder filtering");
+      if (needsStructuralFiltering) {
+        // Fetch ALL data without pagination for structural filtering
+        console.log(
+          "🔍 [useProteins] Fetching all data for structural filtering"
+        );
         const { data: allResults, error, count } = await query;
 
         if (error) {
@@ -113,10 +152,12 @@ export const useProteins = (params: UseProteinsParams = {}) => {
 
         allData = allResults || [];
         totalCount = count || 0;
-        console.log("🔍 [useProteins] Fetched all proteins for filtering:", allData.length);
-
+        console.log(
+          "🔍 [useProteins] Fetched all proteins for filtering:",
+          allData.length
+        );
       } else {
-        // Normal pagination when no disorder filtering
+        // Normal pagination when no structural filtering
         const from = (page - 1) * itemsPerPage;
         const to = from + itemsPerPage - 1;
         query = query.range(from, to);
@@ -279,11 +320,234 @@ export const useProteins = (params: UseProteinsParams = {}) => {
         }
       }
 
+      // Apply SCOP filtering if specified
+      if (
+        results.length > 0 &&
+        (filters.scopClasses?.length > 0 ||
+          filters.scopFolds?.length > 0 ||
+          filters.scopSuperfamilies?.length > 0 ||
+          filters.scopFamilies?.length > 0 ||
+          filters.scopProteinTypes?.length > 0)
+      ) {
+        console.log("🔍 [useProteins] Applying SCOP filtering");
+        const uniprotIds = results
+          .map((r) => r.uniprot_id)
+          .filter(Boolean)
+          .filter((id, index, self) => self.indexOf(id) === index);
+
+        if (uniprotIds.length > 0) {
+          let scopQuery = supabase
+            .from("scop")
+            .select("uniprot_id")
+            .in("uniprot_id", uniprotIds);
+
+          if (filters.scopClasses?.length > 0) {
+            scopQuery = scopQuery.in("class_name", filters.scopClasses);
+          }
+          if (filters.scopFolds?.length > 0) {
+            scopQuery = scopQuery.in("fold_name", filters.scopFolds);
+          }
+          if (filters.scopSuperfamilies?.length > 0) {
+            scopQuery = scopQuery.in("superfamily_name", filters.scopSuperfamilies);
+          }
+          if (filters.scopFamilies?.length > 0) {
+            scopQuery = scopQuery.in("family_name", filters.scopFamilies);
+          }
+          if (filters.scopProteinTypes?.length > 0) {
+            scopQuery = scopQuery.in("protein_type_name", filters.scopProteinTypes);
+          }
+
+          const { data: scopData, error: scopError } = await scopQuery;
+
+          if (scopError) {
+            console.error("Error fetching SCOP data:", scopError);
+          } else if (scopData?.length > 0) {
+            const validScopUniprotIds = new Set(scopData.map(s => s.uniprot_id));
+            const beforeScopFilter = results.length;
+            results = results.filter((protein) => 
+              protein.uniprot_id && validScopUniprotIds.has(protein.uniprot_id)
+            );
+            console.log(
+              `🔍 [useProteins] SCOP filtering: ${beforeScopFilter} -> ${results.length} proteins`
+            );
+          } else {
+            console.log("❌ [useProteins] No SCOP data found, filtering out all results");
+            results = [];
+          }
+        } else {
+          results = [];
+        }
+      }
+
+      // Apply CATH filtering if specified  
+      if (
+        results.length > 0 &&
+        (filters.cathClasses?.length > 0 ||
+          filters.cathArchitectures?.length > 0 ||
+          filters.cathTopologies?.length > 0 ||
+          filters.cathSuperfamilies?.length > 0 ||
+          filters.cathSources?.length > 0 ||
+          filters.cathAssignments?.length > 0 ||
+          filters.cathOrganisms?.length > 0 ||
+          filters.cathPackings?.length > 0 ||
+          filters.cathLengthRanges?.length > 0 ||
+          filters.cathSseRanges?.length > 0 ||
+          filters.cathPldtRanges?.length > 0 ||
+          filters.cathLur?.length > 0)
+      ) {
+        console.log("🔍 [useProteins] Applying CATH filtering");
+        const uniprotIds = results
+          .map((r) => r.uniprot_id)
+          .filter(Boolean)
+          .filter((id, index, self) => self.indexOf(id) === index);
+
+        if (uniprotIds.length > 0) {
+          let cathQuery = supabase
+            .from("cath")
+            .select("*")
+            .in("uniprot_id", uniprotIds);
+
+          const { data: cathData, error: cathError } = await cathQuery;
+
+          if (cathError) {
+            console.error("Error fetching CATH data:", cathError);
+          } else if (cathData?.length > 0) {
+            // Apply CATH filters
+            let filteredCathData = cathData;
+
+            if (filters.cathClasses?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => 
+                filters.cathClasses!.includes(cath.CATH_Class)
+              );
+            }
+            if (filters.cathArchitectures?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => 
+                filters.cathArchitectures!.includes(cath.CATH_Architecture)
+              );
+            }
+            if (filters.cathTopologies?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => 
+                filters.cathTopologies!.includes(cath.CATH_Topology)
+              );
+            }
+            if (filters.cathSuperfamilies?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => 
+                filters.cathSuperfamilies!.includes(cath.CATH_Superfamily)
+              );
+            }
+            if (filters.cathSources?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => 
+                filters.cathSources!.includes(cath.source)
+              );
+            }
+            if (filters.cathAssignments?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => 
+                filters.cathAssignments!.includes(cath.assignment)
+              );
+            }
+            if (filters.cathOrganisms?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => 
+                filters.cathOrganisms!.includes(cath.organism)
+              );
+            }
+            if (filters.cathPackings?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => 
+                filters.cathPackings!.includes(cath.packing)
+              );
+            }
+
+            // Apply range filters
+            if (filters.cathLengthRanges?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => {
+                if (cath.length === null) return false;
+                return filters.cathLengthRanges!.some(range => {
+                  switch (range) {
+                    case "1-50": return cath.length >= 1 && cath.length <= 50;
+                    case "51-100": return cath.length >= 51 && cath.length <= 100;
+                    case "101-200": return cath.length >= 101 && cath.length <= 200;
+                    case "201-300": return cath.length >= 201 && cath.length <= 300;
+                    case "301+": return cath.length >= 301;
+                    default: return false;
+                  }
+                });
+              });
+            }
+
+            if (filters.cathSseRanges?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => {
+                if (cath.SSEs === null) return false;
+                return filters.cathSseRanges!.some(range => {
+                  switch (range) {
+                    case "1-5": return cath.SSEs >= 1 && cath.SSEs <= 5;
+                    case "6-10": return cath.SSEs >= 6 && cath.SSEs <= 10;
+                    case "11-15": return cath.SSEs >= 11 && cath.SSEs <= 15;
+                    case "16+": return cath.SSEs >= 16;
+                    default: return false;
+                  }
+                });
+              });
+            }
+
+            if (filters.cathPldtRanges?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => {
+                if (!cath.pLDDT) return false;
+                const plddt = parseFloat(cath.pLDDT);
+                if (isNaN(plddt)) return false;
+                return filters.cathPldtRanges!.some(range => {
+                  switch (range) {
+                    case "0-50": return plddt >= 0 && plddt <= 50;
+                    case "51-70": return plddt >= 51 && plddt <= 70;
+                    case "71-90": return plddt >= 71 && plddt <= 90;
+                    case "91-100": return plddt >= 91 && plddt <= 100;
+                    default: return false;
+                  }
+                });
+              });
+            }
+
+            if (filters.cathLur?.length > 0) {
+              filteredCathData = filteredCathData.filter(cath => {
+                return filters.cathLur!.some(lur => {
+                  switch (lur) {
+                    case "true": return cath.LUR === true;
+                    case "false": return cath.LUR === false;
+                    default: return false;
+                  }
+                });
+              });
+            }
+
+            const validCathUniprotIds = new Set(filteredCathData.map(c => c.uniprot_id));
+            const beforeCathFilter = results.length;
+            results = results.filter((protein) => 
+              protein.uniprot_id && validCathUniprotIds.has(protein.uniprot_id)
+            );
+            console.log(
+              `🔍 [useProteins] CATH filtering: ${beforeCathFilter} -> ${results.length} proteins`
+            );
+          } else {
+            console.log("❌ [useProteins] No CATH data found, filtering out all results");
+            results = [];
+          }
+        } else {
+          results = [];
+        }
+      }
+
       // Apply pagination to the filtered results
       const startIndex = (page - 1) * itemsPerPage;
-      const paginatedResults = results.slice(startIndex, startIndex + itemsPerPage);
+      const paginatedResults = results.slice(
+        startIndex,
+        startIndex + itemsPerPage
+      );
 
-      console.log("🔍 [useProteins] Final results after disorder filtering and pagination:", paginatedResults.length, "out of", results.length, "total");
+      console.log(
+        "🔍 [useProteins] Final results after all filtering and pagination:",
+        paginatedResults.length,
+        "out of",
+        results.length,
+        "total"
+      );
 
       return {
         data: paginatedResults,
