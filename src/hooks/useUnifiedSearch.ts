@@ -68,7 +68,7 @@ export const useUnifiedSearch = (params: UseUnifiedSearchParams = {}) => {
     queryFn: async () => {
       console.log("Unified search with params:", params);
 
-      const results: UnifiedSearchResult[] = [];
+      let results: UnifiedSearchResult[] = [];
       let totalCount = 0;
 
       // Search experimental proteins if not filtering for motif only
@@ -300,45 +300,8 @@ export const useUnifiedSearch = (params: UseUnifiedSearchParams = {}) => {
                   });
                 }
 
-                if (
-                  filters.cathPercentRanges &&
-                  filters.cathPercentRanges.length > 0
-                ) {
-                  cathData = cathData.filter((cath) => {
-                    if (cath.perc_not_in_SS === null) return false;
-                    return filters.cathPercentRanges!.some((range) => {
-                      switch (range) {
-                        case "0-10%":
-                          return (
-                            cath.perc_not_in_SS >= 0 &&
-                            cath.perc_not_in_SS <= 10
-                          );
-                        case "11-25%":
-                          return (
-                            cath.perc_not_in_SS >= 11 &&
-                            cath.perc_not_in_SS <= 25
-                          );
-                        case "26-50%":
-                          return (
-                            cath.perc_not_in_SS >= 26 &&
-                            cath.perc_not_in_SS <= 50
-                          );
-                        case "51-75%":
-                          return (
-                            cath.perc_not_in_SS >= 51 &&
-                            cath.perc_not_in_SS <= 75
-                          );
-                        case "76-100%":
-                          return (
-                            cath.perc_not_in_SS >= 76 &&
-                            cath.perc_not_in_SS <= 100
-                          );
-                        default:
-                          return false;
-                      }
-                    });
-                  });
-                }
+                // Note: cathPercentRanges is actually for disorder percentage, not CATH perc_not_in_SS
+                // This filtering will be applied later when we have protein disorder data
 
                 if (
                   filters.cathPldtRanges &&
@@ -473,6 +436,141 @@ export const useUnifiedSearch = (params: UseUnifiedSearchParams = {}) => {
 
           results.push(...filteredMotifData);
           totalCount += motifCount || 0;
+        }
+      }
+
+      // Apply disorder percentage filtering if specified
+      if (
+        filters.cathPercentRanges &&
+        filters.cathPercentRanges.length > 0 &&
+        results.length > 0
+      ) {
+        console.log(
+          "🔍 Applying disorder filtering with ranges:",
+          filters.cathPercentRanges
+        );
+        console.log(
+          "🔍 Total results before disorder filtering:",
+          results.length
+        );
+
+        // Get unique uniprot_ids from results
+        const uniprotIds = results
+          .map((r) => r.uniprot_id)
+          .filter(Boolean)
+          .filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+
+        console.log("🔍 Unique UniProt IDs found:", uniprotIds.length);
+
+        if (uniprotIds.length > 0) {
+          // Fetch disorder data for these proteins - try both percentage_disorder and scores
+          const { data: disorderData, error } = await supabase
+            .from("protein_disorder")
+            .select("uniprot_id, percentage_disorder, scores")
+            .in("uniprot_id", uniprotIds);
+
+          console.log("🔍 Disorder data query result:", {
+            dataCount: disorderData?.length || 0,
+            error: error?.message,
+            sampleData: disorderData?.slice(0, 3),
+          });
+
+          if (disorderData && disorderData.length > 0) {
+            // Create a map of disorder percentages
+            const disorderPercentageMap = new Map<string, number>();
+            disorderData.forEach((protein) => {
+              let percentage = 0;
+
+              // Try to use percentage_disorder column first, fallback to calculating from scores
+              if (
+                protein.percentage_disorder !== null &&
+                protein.percentage_disorder !== undefined
+              ) {
+                percentage = protein.percentage_disorder;
+              } else if (
+                protein.scores &&
+                Array.isArray(protein.scores) &&
+                protein.scores.length > 0
+              ) {
+                // Calculate percentage from scores (>= 0.5 threshold)
+                const disorderedCount = protein.scores.filter(
+                  (score: number) => score >= 0.5
+                ).length;
+                percentage = (disorderedCount / protein.scores.length) * 100;
+              }
+
+              if (percentage > 0) {
+                disorderPercentageMap.set(protein.uniprot_id, percentage);
+              }
+            });
+
+            console.log(
+              "🔍 Disorder percentage map size:",
+              disorderPercentageMap.size
+            );
+            console.log(
+              "🔍 Sample disorder data:",
+              Array.from(disorderPercentageMap.entries()).slice(0, 3)
+            );
+
+            const originalResultsCount = results.length;
+            // Filter results based on disorder percentage
+            results = results.filter((protein) => {
+              if (!protein.uniprot_id) return false;
+              const disorderPercentage = disorderPercentageMap.get(
+                protein.uniprot_id
+              );
+              if (
+                disorderPercentage === undefined ||
+                disorderPercentage === null
+              )
+                return false;
+
+              const matchesRange = filters.cathPercentRanges!.some((range) => {
+                switch (range) {
+                  case "0-10%":
+                    return disorderPercentage >= 0 && disorderPercentage <= 10;
+                  case "11-25%":
+                    return disorderPercentage >= 11 && disorderPercentage <= 25;
+                  case "26-50%":
+                    return disorderPercentage >= 26 && disorderPercentage <= 50;
+                  case "51-75%":
+                    return disorderPercentage >= 51 && disorderPercentage <= 75;
+                  case "76-100%":
+                    return (
+                      disorderPercentage >= 76 && disorderPercentage <= 100
+                    );
+                  default:
+                    return false;
+                }
+              });
+
+              if (matchesRange) {
+                console.log(
+                  `✅ Protein ${protein.uniprot_id} with ${disorderPercentage}% disorder matches filter`
+                );
+              }
+
+              return matchesRange;
+            });
+
+            console.log(
+              "🔍 Results after disorder filtering:",
+              results.length,
+              "out of",
+              originalResultsCount
+            );
+          } else {
+            console.log("❌ No disorder data found, filtering out all results");
+            // No disorder data found, so no proteins match the disorder filter
+            results = [];
+          }
+        } else {
+          console.log(
+            "❌ No uniprot_ids to filter by, filtering out all results"
+          );
+          // No uniprot_ids to filter by, so no results
+          results = [];
         }
       }
 

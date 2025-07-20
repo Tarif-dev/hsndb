@@ -10,18 +10,8 @@ interface DisorderData {
   gene_name: string | null;
   protein_name: string | null;
   sequence: string | null;
-  percentageDisorder?: number; // Added field for percentage of residues with disorder > 0.5
+  percentageDisorder?: number; // Percentage disorder from the percentage_disorder column
 }
-
-// Helper function to calculate the percentage of disordered residues (score >= threshold)
-const calculatePercentageDisorder = (
-  scores: number[],
-  threshold: number = 0.5
-): number => {
-  if (!scores || scores.length === 0) return 0;
-  const disorderedCount = scores.filter((score) => score >= threshold).length;
-  return (disorderedCount / scores.length) * 100;
-};
 
 export const useProteinDisorder = (
   uniprotId: string | null,
@@ -46,12 +36,10 @@ export const useProteinDisorder = (
         }
 
         if (disorderData) {
-          // Calculate and add percentage disorder
+          // Use the existing percentage_disorder column
           return {
             ...disorderData,
-            percentageDisorder: calculatePercentageDisorder(
-              disorderData.scores
-            ),
+            percentageDisorder: disorderData.percentage_disorder || 0,
           };
         }
       }
@@ -86,12 +74,10 @@ export const useProteinDisorder = (
           }
 
           if (disorderData) {
-            // Calculate and add percentage disorder
+            // Use the existing percentage_disorder column
             return {
               ...disorderData,
-              percentageDisorder: calculatePercentageDisorder(
-                disorderData.scores
-              ),
+              percentageDisorder: disorderData.percentage_disorder || 0,
             };
           }
         }

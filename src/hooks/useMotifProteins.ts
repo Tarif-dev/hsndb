@@ -23,6 +23,7 @@ interface UseMotifProteinsParams {
     cancerCausing?: boolean;
     totalSites?: string;
     cancerTypes?: string[];
+    cathPercentRanges?: string[];
   };
   sortBy?: string;
   page?: number;
@@ -114,56 +115,114 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
 
       query = query.order(orderColumn, { ascending });
 
-      // Apply pagination
-      const from = (page - 1) * itemsPerPage;
-      const to = from + itemsPerPage - 1;
-      query = query.range(from, to);
-      try {
-        // Extra safety - log the query details
-        console.log("Executing query for motif proteins");
+      // Check if we need disorder filtering - if so, fetch all data first, then filter and paginate
+      const needsDisorderFiltering = filters.cathPercentRanges && filters.cathPercentRanges.length > 0;
 
-        const response = await query;
-        const { data, error, count } = response;
+      let allData: any[] = [];
+      let totalCount = 0;
 
-        console.log("Raw database response:", {
-          hasData: Boolean(data),
-          dataLength: data ? data.length : 0,
-          error: error ? error.message : null,
-          count,
-        });
+      if (needsDisorderFiltering) {
+        // Fetch ALL data without pagination for disorder filtering
+        console.log("🔍 [useMotifProteins] Fetching all data for disorder filtering");
+        const { data: allResults, error, count } = await query;
 
         if (error) {
           console.error("Error fetching motif proteins:", error);
           throw new Error(`Failed to fetch motif proteins: ${error.message}`);
         }
 
-        console.log("Fetched motif proteins:", data ? data.length : 0, "items");
-        console.log("Sample data:", data ? data.slice(0, 2) : null);
-        console.log("Total count:", count || 0); // Make sure we're handling empty data appropriately and ensure all required fields exist
-        const safeData = (data || []).map((item) => {
-          return {
-            // Basic motif protein fields
-            id: item.id || "",
-            hsn_id: item.hsn_id || "",
-            gene_name: item.gene_name || null,
-            uniprot_id: item.uniprot_id || null,
-            protein_name: item.protein_name || null,
-            protein_length: item.protein_length || null,
-            alphafold_id: item.alphafold_id || null,
-            // Add nitrosylation site information
-            total_sites: (item as any).total_sites || null,
-            positions_of_nitrosylation:
-              (item as any).positions_of_nitrosylation || null,
+        allData = allResults || [];
+        totalCount = count || 0;
+        console.log("🔍 [useMotifProteins] Fetched all motif proteins for filtering:", allData.length);
 
-            // Get cancer information directly from motif_based_proteins table
-            cancer_causing: (item as any).cancer_causing || null,
-            cancer_types: (item as any).cancer_types || null,
+      } else {
+        // Normal pagination when no disorder filtering
+        const from = (page - 1) * itemsPerPage;
+        const to = from + itemsPerPage - 1;
+        query = query.range(from, to);
+      }
+      try {
+        let safeData: any[] = [];
+        let finalCount = 0;
 
-            // Timestamps
-            created_at: item.created_at || new Date().toISOString(),
-            updated_at: item.updated_at || new Date().toISOString(),
-          };
-        });
+        if (needsDisorderFiltering) {
+          // Process all data for disorder filtering
+          safeData = (allData || []).map((item) => {
+            return {
+              // Basic motif protein fields
+              id: item.id || "",
+              hsn_id: item.hsn_id || "",
+              gene_name: item.gene_name || null,
+              uniprot_id: item.uniprot_id || null,
+              protein_name: item.protein_name || null,
+              protein_length: item.protein_length || null,
+              alphafold_id: item.alphafold_id || null,
+              // Add nitrosylation site information
+              total_sites: (item as any).total_sites || null,
+              positions_of_nitrosylation:
+                (item as any).positions_of_nitrosylation || null,
+
+              // Get cancer information directly from motif_based_proteins table
+              cancer_causing: (item as any).cancer_causing || null,
+              cancer_types: (item as any).cancer_types || null,
+
+              // Timestamps
+              created_at: item.created_at || new Date().toISOString(),
+              updated_at: item.updated_at || new Date().toISOString(),
+            };
+          });
+          finalCount = totalCount;
+        } else {
+          // Normal pagination path
+          // Extra safety - log the query details
+          console.log("Executing query for motif proteins");
+
+          const response = await query;
+          const { data, error, count } = response;
+
+          console.log("Raw database response:", {
+            hasData: Boolean(data),
+            dataLength: data ? data.length : 0,
+            error: error ? error.message : null,
+            count,
+          });
+
+          if (error) {
+            console.error("Error fetching motif proteins:", error);
+            throw new Error(`Failed to fetch motif proteins: ${error.message}`);
+          }
+
+          console.log("Fetched motif proteins:", data ? data.length : 0, "items");
+          console.log("Sample data:", data ? data.slice(0, 2) : null);
+          console.log("Total count:", count || 0);
+
+          // Make sure we're handling empty data appropriately and ensure all required fields exist
+          safeData = (data || []).map((item) => {
+            return {
+              // Basic motif protein fields
+              id: item.id || "",
+              hsn_id: item.hsn_id || "",
+              gene_name: item.gene_name || null,
+              uniprot_id: item.uniprot_id || null,
+              protein_name: item.protein_name || null,
+              protein_length: item.protein_length || null,
+              alphafold_id: item.alphafold_id || null,
+              // Add nitrosylation site information
+              total_sites: (item as any).total_sites || null,
+              positions_of_nitrosylation:
+                (item as any).positions_of_nitrosylation || null,
+
+              // Get cancer information directly from motif_based_proteins table
+              cancer_causing: (item as any).cancer_causing || null,
+              cancer_types: (item as any).cancer_types || null,
+
+              // Timestamps
+              created_at: item.created_at || new Date().toISOString(),
+              updated_at: item.updated_at || new Date().toISOString(),
+            };
+          });
+          finalCount = count || 0;
+        }
 
         // Apply only client-side filters that can't be done at DB level
         let filteredData = safeData;
@@ -197,10 +256,174 @@ export const useMotifProteins = (params: UseMotifProteinsParams = {}) => {
           );
         }
 
-        return {
-          data: filteredData as MotifProtein[],
-          count: count || 0, // Use the original count from the database
-        };
+        // Apply disorder percentage filtering if specified
+        if (
+          filters.cathPercentRanges &&
+          filters.cathPercentRanges.length > 0 &&
+          filteredData.length > 0
+        ) {
+          console.log(
+            "🔍 [useMotifProteins] Applying disorder filtering with ranges:",
+            filters.cathPercentRanges
+          );
+          console.log(
+            "🔍 [useMotifProteins] Total results before disorder filtering:",
+            filteredData.length
+          );
+
+          // Get unique uniprot_ids from results
+          const uniprotIds = filteredData
+            .map((r) => r.uniprot_id)
+            .filter(Boolean)
+            .filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+
+          console.log(
+            "🔍 [useMotifProteins] Unique UniProt IDs found:",
+            uniprotIds.length
+          );
+
+          if (uniprotIds.length > 0) {
+            // Fetch disorder data for these proteins - try both percentage_disorder and scores
+            const { data: disorderData, error: disorderError } = await supabase
+              .from("protein_disorder")
+              .select("uniprot_id, percentage_disorder, scores")
+              .in("uniprot_id", uniprotIds);
+
+            console.log("🔍 [useMotifProteins] Disorder data query result:", {
+              dataCount: disorderData?.length || 0,
+              error: disorderError?.message,
+              sampleData: disorderData?.slice(0, 3),
+            });
+
+            if (disorderData && disorderData.length > 0) {
+              // Create a map of disorder percentages
+              const disorderPercentageMap = new Map<string, number>();
+              disorderData.forEach((protein) => {
+                let percentage = 0;
+
+                // Try to use percentage_disorder column first, fallback to calculating from scores
+                if (
+                  protein.percentage_disorder !== null &&
+                  protein.percentage_disorder !== undefined
+                ) {
+                  percentage = protein.percentage_disorder;
+                } else if (
+                  protein.scores &&
+                  Array.isArray(protein.scores) &&
+                  protein.scores.length > 0
+                ) {
+                  // Calculate percentage from scores (>= 0.5 threshold)
+                  const disorderedCount = protein.scores.filter(
+                    (score: number) => score >= 0.5
+                  ).length;
+                  percentage = (disorderedCount / protein.scores.length) * 100;
+                }
+
+                if (percentage > 0) {
+                  disorderPercentageMap.set(protein.uniprot_id, percentage);
+                }
+              });
+
+              console.log(
+                "🔍 [useMotifProteins] Disorder percentage map size:",
+                disorderPercentageMap.size
+              );
+              console.log(
+                "🔍 [useMotifProteins] Sample disorder data:",
+                Array.from(disorderPercentageMap.entries()).slice(0, 3)
+              );
+
+              const originalResultsCount = filteredData.length;
+              // Filter results based on disorder percentage
+              filteredData = filteredData.filter((protein) => {
+                if (!protein.uniprot_id) return false;
+                const disorderPercentage = disorderPercentageMap.get(
+                  protein.uniprot_id
+                );
+                if (
+                  disorderPercentage === undefined ||
+                  disorderPercentage === null
+                )
+                  return false;
+
+                const matchesRange = filters.cathPercentRanges!.some(
+                  (range) => {
+                    switch (range) {
+                      case "0-10%":
+                        return (
+                          disorderPercentage >= 0 && disorderPercentage <= 10
+                        );
+                      case "11-25%":
+                        return (
+                          disorderPercentage >= 11 && disorderPercentage <= 25
+                        );
+                      case "26-50%":
+                        return (
+                          disorderPercentage >= 26 && disorderPercentage <= 50
+                        );
+                      case "51-75%":
+                        return (
+                          disorderPercentage >= 51 && disorderPercentage <= 75
+                        );
+                      case "76-100%":
+                        return (
+                          disorderPercentage >= 76 && disorderPercentage <= 100
+                        );
+                      default:
+                        return false;
+                    }
+                  }
+                );
+
+                if (matchesRange) {
+                  console.log(
+                    `✅ [useMotifProteins] Protein ${protein.uniprot_id} with ${disorderPercentage}% disorder matches filter`
+                  );
+                }
+
+                return matchesRange;
+              });
+
+              console.log(
+                "🔍 [useMotifProteins] Results after disorder filtering:",
+                filteredData.length,
+                "out of",
+                originalResultsCount
+              );
+            } else {
+              console.log(
+                "❌ [useMotifProteins] No disorder data found, filtering out all results"
+              );
+              // No disorder data found, so no proteins match the disorder filter
+              filteredData = [];
+            }
+          } else {
+            console.log(
+              "❌ [useMotifProteins] No uniprot_ids to filter by, filtering out all results"
+            );
+            // No uniprot_ids to filter by, so no results
+            filteredData = [];
+          }
+        }
+
+        // If disorder filtering is needed, apply pagination to the filtered results
+        if (needsDisorderFiltering) {
+          // Apply pagination to the filtered results
+          const startIndex = (page - 1) * itemsPerPage;
+          const paginatedResults = filteredData.slice(startIndex, startIndex + itemsPerPage);
+
+          console.log("🔍 [useMotifProteins] Final results after disorder filtering and pagination:", paginatedResults.length, "out of", filteredData.length, "total");
+
+          return {
+            data: paginatedResults as MotifProtein[],
+            count: filteredData.length, // Use the filtered count for proper pagination
+          };
+        } else {
+          return {
+            data: filteredData as MotifProtein[],
+            count: finalCount, // Use the original count from the database
+          };
+        }
       } catch (err) {
         console.error("Exception in useMotifProteins:", err);
         // Return empty data set instead of crashing

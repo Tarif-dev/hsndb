@@ -37,6 +37,7 @@ export type Database = {
           gene_name: string | null;
           protein_name: string | null;
           sequence: string | null;
+          percentage_disorder: number | null;
         };
         Insert: {
           protein_id: string;
@@ -47,6 +48,7 @@ export type Database = {
           gene_name?: string | null;
           protein_name?: string | null;
           sequence?: string | null;
+          percentage_disorder?: number | null;
         };
         Update: {
           protein_id?: string;
@@ -57,6 +59,7 @@ export type Database = {
           gene_name?: string | null;
           protein_name?: string | null;
           sequence?: string | null;
+          percentage_disorder?: number | null;
         };
         Relationships: [];
       };

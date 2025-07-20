@@ -23,6 +23,7 @@ interface UseProteinsParams {
     cancerCausing?: boolean;
     totalSites?: string;
     cancerTypes?: string[];
+    cathPercentRanges?: string[];
   };
   sortBy?: string;
   page?: number;
@@ -94,24 +95,199 @@ export const useProteins = (params: UseProteinsParams = {}) => {
 
       query = query.order(orderColumn, { ascending });
 
-      // Apply pagination
-      const from = (page - 1) * itemsPerPage;
-      const to = from + itemsPerPage - 1;
-      query = query.range(from, to);
+      // Check if we need disorder filtering - if so, fetch all data first, then filter and paginate
+      const needsDisorderFiltering = filters.cathPercentRanges && filters.cathPercentRanges.length > 0;
 
-      const { data, error, count } = await query;
+      let allData: any[] = [];
+      let totalCount = 0;
 
-      if (error) {
-        console.error("Error fetching proteins:", error);
-        throw error;
+      if (needsDisorderFiltering) {
+        // Fetch ALL data without pagination for disorder filtering
+        console.log("🔍 [useProteins] Fetching all data for disorder filtering");
+        const { data: allResults, error, count } = await query;
+
+        if (error) {
+          console.error("Error fetching proteins:", error);
+          throw error;
+        }
+
+        allData = allResults || [];
+        totalCount = count || 0;
+        console.log("🔍 [useProteins] Fetched all proteins for filtering:", allData.length);
+
+      } else {
+        // Normal pagination when no disorder filtering
+        const from = (page - 1) * itemsPerPage;
+        const to = from + itemsPerPage - 1;
+        query = query.range(from, to);
+
+        const { data, error, count } = await query;
+
+        if (error) {
+          console.error("Error fetching proteins:", error);
+          throw error;
+        }
+
+        console.log("Fetched proteins:", data);
+        console.log("Total count:", count);
+
+        return {
+          data: data as Protein[],
+          count: count || 0,
+        };
       }
 
-      console.log("Fetched proteins:", data);
-      console.log("Total count:", count);
+      let results = allData as Protein[];
+
+      // Apply disorder percentage filtering if specified
+      if (
+        filters.cathPercentRanges &&
+        filters.cathPercentRanges.length > 0 &&
+        results.length > 0
+      ) {
+        console.log(
+          "🔍 [useProteins] Applying disorder filtering with ranges:",
+          filters.cathPercentRanges
+        );
+        console.log(
+          "🔍 [useProteins] Total results before disorder filtering:",
+          results.length
+        );
+
+        // Get unique uniprot_ids from results
+        const uniprotIds = results
+          .map((r) => r.uniprot_id)
+          .filter(Boolean)
+          .filter((id, index, self) => self.indexOf(id) === index); // Remove duplicates
+
+        console.log(
+          "🔍 [useProteins] Unique UniProt IDs found:",
+          uniprotIds.length
+        );
+
+        if (uniprotIds.length > 0) {
+          // Fetch disorder data for these proteins - try both percentage_disorder and scores
+          const { data: disorderData, error: disorderError } = await supabase
+            .from("protein_disorder")
+            .select("uniprot_id, percentage_disorder, scores")
+            .in("uniprot_id", uniprotIds);
+
+          console.log("🔍 [useProteins] Disorder data query result:", {
+            dataCount: disorderData?.length || 0,
+            error: disorderError?.message,
+            sampleData: disorderData?.slice(0, 3),
+          });
+
+          if (disorderData && disorderData.length > 0) {
+            // Create a map of disorder percentages
+            const disorderPercentageMap = new Map<string, number>();
+            disorderData.forEach((protein) => {
+              let percentage = 0;
+
+              // Try to use percentage_disorder column first, fallback to calculating from scores
+              if (
+                protein.percentage_disorder !== null &&
+                protein.percentage_disorder !== undefined
+              ) {
+                percentage = protein.percentage_disorder;
+              } else if (
+                protein.scores &&
+                Array.isArray(protein.scores) &&
+                protein.scores.length > 0
+              ) {
+                // Calculate percentage from scores (>= 0.5 threshold)
+                const disorderedCount = protein.scores.filter(
+                  (score: number) => score >= 0.5
+                ).length;
+                percentage = (disorderedCount / protein.scores.length) * 100;
+              }
+
+              if (percentage > 0) {
+                disorderPercentageMap.set(protein.uniprot_id, percentage);
+              }
+            });
+
+            console.log(
+              "🔍 [useProteins] Disorder percentage map size:",
+              disorderPercentageMap.size
+            );
+            console.log(
+              "🔍 [useProteins] Sample disorder data:",
+              Array.from(disorderPercentageMap.entries()).slice(0, 3)
+            );
+
+            const originalResultsCount = results.length;
+            // Filter results based on disorder percentage
+            results = results.filter((protein) => {
+              if (!protein.uniprot_id) return false;
+              const disorderPercentage = disorderPercentageMap.get(
+                protein.uniprot_id
+              );
+              if (
+                disorderPercentage === undefined ||
+                disorderPercentage === null
+              )
+                return false;
+
+              const matchesRange = filters.cathPercentRanges!.some((range) => {
+                switch (range) {
+                  case "0-10%":
+                    return disorderPercentage >= 0 && disorderPercentage <= 10;
+                  case "11-25%":
+                    return disorderPercentage >= 11 && disorderPercentage <= 25;
+                  case "26-50%":
+                    return disorderPercentage >= 26 && disorderPercentage <= 50;
+                  case "51-75%":
+                    return disorderPercentage >= 51 && disorderPercentage <= 75;
+                  case "76-100%":
+                    return (
+                      disorderPercentage >= 76 && disorderPercentage <= 100
+                    );
+                  default:
+                    return false;
+                }
+              });
+
+              if (matchesRange) {
+                console.log(
+                  `✅ [useProteins] Protein ${protein.uniprot_id} with ${disorderPercentage}% disorder matches filter`
+                );
+              }
+
+              return matchesRange;
+            });
+
+            console.log(
+              "🔍 [useProteins] Results after disorder filtering:",
+              results.length,
+              "out of",
+              originalResultsCount
+            );
+          } else {
+            console.log(
+              "❌ [useProteins] No disorder data found, filtering out all results"
+            );
+            // No disorder data found, so no proteins match the disorder filter
+            results = [];
+          }
+        } else {
+          console.log(
+            "❌ [useProteins] No uniprot_ids to filter by, filtering out all results"
+          );
+          // No uniprot_ids to filter by, so no results
+          results = [];
+        }
+      }
+
+      // Apply pagination to the filtered results
+      const startIndex = (page - 1) * itemsPerPage;
+      const paginatedResults = results.slice(startIndex, startIndex + itemsPerPage);
+
+      console.log("🔍 [useProteins] Final results after disorder filtering and pagination:", paginatedResults.length, "out of", results.length, "total");
 
       return {
-        data: data as Protein[],
-        count: count || 0,
+        data: paginatedResults,
+        count: results.length, // Use the filtered count for proper pagination
       };
     },
   });
